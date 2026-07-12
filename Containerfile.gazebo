@@ -1,0 +1,101 @@
+FROM registry.fedoraproject.org/fedora:43
+
+# ── COPR repo ────────────────────────────────────────────────────────────────
+RUN dnf install -y 'dnf-command(copr)' && \
+    dnf copr enable -y tavie/ros2
+
+# ── System packages ──────────────────────────────────────────────────────────
+RUN dnf install -y \
+        ros-jazzy-ros-base \
+        ros-jazzy-ros-gz-bridge \
+        ros-jazzy-ros-gz-sim \
+        ros-jazzy-gz-sim-vendor \
+        ros-jazzy-nav2-minimal-tb3-sim \
+        ros-jazzy-robot-state-publisher \
+        ros-jazzy-rmw-cyclonedds-cpp \
+        mesa-libGL \
+        mesa-libEGL \
+        mesa-dri-drivers \
+        mesa-vulkan-drivers \
+        xorg-x11-server-Xvfb \
+        x11vnc \
+        novnc \
+        python3-websockify \
+        openbox \
+        xterm \
+        python3 && \
+    dnf clean all
+
+# ── Dynamic linker: pick up all Fedora Gazebo vendor libs ────────────────────
+# Paths verified live on a running pod; each gz_*_vendor package installs
+# under /usr/lib64/ros-jazzy/opt/<vendor_name>/lib64 or /lib.
+RUN cat > /etc/ld.so.conf.d/gz-vendor.conf <<'EOF'
+/usr/lib64/ros-jazzy
+/usr/lib64/ros-jazzy/opt/gz_sim_vendor/lib64
+/usr/lib64/ros-jazzy/opt/gz_physics_vendor/lib64
+/usr/lib64/ros-jazzy/opt/gz_dartsim_vendor/lib64
+/usr/lib64/ros-jazzy/opt/gz_rendering_vendor/lib64
+/usr/lib64/ros-jazzy/opt/gz_ogre_next_vendor/lib
+/usr/lib64/ros-jazzy/opt/gz_sensors_vendor/lib64
+/usr/lib64/ros-jazzy/opt/gz_transport_vendor/lib64
+/usr/lib64/ros-jazzy/opt/gz_fuel_tools_vendor/lib64
+EOF
+RUN ldconfig
+
+# ── BUILDROOT symlinks for Fedora gz vendor RPM embedded build paths ─────────
+# Each Fedora gz_*_vendor RPM records its build-time sysroot as
+#   /builddir/build/BUILD/<package>-build/BUILDROOT/
+# and crashes at runtime when those paths don't exist.  Symlinking BUILDROOT→/
+# makes every embedded path resolve correctly.
+RUN mkdir -p /builddir/build/BUILD && \
+    for pkg in \
+      "ros-jazzy-gz-rendering-vendor-0.0.7-build" \
+      "ros-jazzy-gz-ogre-next-vendor-0.0.5-build" \
+      "ros-jazzy-gz-sim-vendor-0.0.7-build" \
+      "ros-jazzy-gz-physics-vendor-0.0.7-build" \
+      "ros-jazzy-gz-dartsim-vendor-0.0.7-build" \
+      "ros-jazzy-gz-sensors-vendor-0.0.7-build" \
+      "ros-jazzy-gz-transport-vendor-0.0.7-build" \
+      "ros-jazzy-gz-fuel-tools-vendor-0.0.7-build"; do \
+        mkdir -p "/builddir/build/BUILD/${pkg}" && \
+        ln -sfn / "/builddir/build/BUILD/${pkg}/BUILDROOT"; \
+    done
+
+# ── Gazebo environment (Fedora vendor layout, verified on live pod) ──────────
+ENV GZ_SIM_SYSTEM_PLUGIN_PATH=/usr/lib64/ros-jazzy/opt/gz_sim_vendor/lib64/gz-sim-8/plugins \
+    GZ_SIM_PHYSICS_ENGINE_PATH=/usr/lib64/ros-jazzy/opt/gz_physics_vendor/lib64/gz-physics-7/engine-plugins \
+    GZ_RENDERING_PLUGIN_PATH=/usr/lib64/ros-jazzy/opt/gz_rendering_vendor/lib64/gz-rendering-8/engine-plugins \
+    GZ_SIM_RESOURCE_PATH=/usr/lib64/ros-jazzy/opt/gz_sim_vendor/share/gz/gz-sim8/worlds:/usr/lib64/ros-jazzy/opt/gz_sim_vendor/share/gz/gz-sim8:/usr/lib64/ros-jazzy/opt/gz_sim_vendor/share/gz \
+    GZ_SIM_SERVER_CONFIG_PATH=/usr/lib64/ros-jazzy/opt/gz_sim_vendor/share/gz/gz-sim8 \
+    GZ_VERSION=harmonic \
+    LD_LIBRARY_PATH=/usr/lib64/ros-jazzy/opt/gz_sim_vendor/lib64:/usr/lib64/ros-jazzy/opt/gz_physics_vendor/lib64:/usr/lib64/ros-jazzy/opt/gz_dartsim_vendor/lib64:/usr/lib64/ros-jazzy/opt/gz_rendering_vendor/lib64:/usr/lib64/ros-jazzy/opt/gz_ogre_next_vendor/lib:/usr/lib64/ros-jazzy/opt/gz_sensors_vendor/lib64:/usr/lib64/ros-jazzy
+
+# ── Non-root user: UID 1001, GID 0 (restricted-v2 compatible) ───────────────
+RUN useradd -u 1001 -g 0 -M -d /tmp/ros-home ros && \
+    mkdir -p /tmp/ros-home && \
+    chown -R 1001:0 /tmp/ros-home && \
+    chmod -R g+rwX /tmp/ros-home && \
+    chmod 1777 /tmp/.X11-unix || true
+
+# ── Entrypoints and config ───────────────────────────────────────────────────
+COPY entrypoints/entrypoint-gazebo.sh /usr/local/bin/
+COPY config/worlds    /home/ros/worlds
+COPY config/gz-bridge /home/ros/gz-bridge
+COPY config/gz        /home/ros/gz
+COPY config/www       /home/ros/www
+
+# ── Runtime environment ───────────────────────────────────────────────────────
+ENV HOME=/tmp/ros-home \
+    ROS_HOME=/tmp/ros-home \
+    GZ_HOME=/tmp/ros-home \
+    GZ_CACHE_PATH=/tmp/ros-home/.gz \
+    ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST \
+    RMW_IMPLEMENTATION=rmw_cyclonedds_cpp \
+    DISPLAY=:99 \
+    LIBGL_ALWAYS_INDIRECT=0
+
+USER 1001
+
+EXPOSE 6080 8080
+
+CMD ["/usr/local/bin/entrypoint-gazebo.sh"]

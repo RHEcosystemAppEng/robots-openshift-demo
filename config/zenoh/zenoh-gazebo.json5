@@ -1,0 +1,18 @@
+// Zenoh client config for the Gazebo pod's zenoh-bridge-ros2dds sidecar.
+// allow filter restricts bridging to Gazebo-relevant topics only, preventing
+// the bridge from being flooded with errors trying to process Nav2 message
+// types it doesn't have installed.
+{
+  mode: "client",
+  connect: {
+    endpoints: ["tcp/zenoh-router:7447"]
+  },
+  scouting: {
+    multicast: { enabled: false }
+  },
+  plugins: {
+    ros2dds: {
+      allow: "^(scan|odom|tf|tf_static|clock|imu|joint_states|cmd_vel|ros_discovery_info|rosout)$"
+    }
+  }
+}

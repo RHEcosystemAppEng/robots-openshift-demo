@@ -1,0 +1,153 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gazebo-sim
+  namespace: robot-demo
+  labels:
+    app: gazebo-sim
+    app.kubernetes.io/name: robot-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gazebo-sim
+  template:
+    metadata:
+      labels:
+        app: gazebo-sim
+        app.kubernetes.io/name: robot-demo
+    spec:
+      serviceAccountName: robot-demo
+      initContainers:
+        - name: wait-for-zenoh
+          image: busybox:1.36
+          command: ["sh", "-c", "until nc -z zenoh-router 7447; do echo 'waiting for zenoh-router...'; sleep 2; done; echo 'zenoh-router is ready'"]
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      containers:
+        - name: gazebo
+          image: quay.io/jianrzha/robot-demo-gazebo:latest
+          command: ["/usr/local/bin/entrypoint-gazebo.sh"]
+          ports:
+            - containerPort: 6080
+              name: novnc
+            - containerPort: 8080
+              name: gzweb
+          env:
+            - name: HOME
+              value: /tmp/ros-home
+            - name: ROS_HOME
+              value: /tmp/ros-home
+            - name: GZ_HOME
+              value: /tmp/ros-home
+            - name: GZ_CACHE_PATH
+              value: /tmp/ros-home/.gz
+            - name: ROS_AUTOMATIC_DISCOVERY_RANGE
+              value: LOCALHOST
+            - name: RMW_IMPLEMENTATION
+              value: rmw_cyclonedds_cpp
+            - name: DISPLAY
+              value: ":99"
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: all
+            - name: NVIDIA_DRIVER_CAPABILITIES
+              value: graphics,compute,utility
+          volumeMounts:
+            - name: ros-home
+              mountPath: /tmp/ros-home
+            - name: x11-unix
+              mountPath: /tmp/.X11-unix
+            - name: gz-bridge-config
+              mountPath: /home/ros/gz-bridge
+            - name: www-config
+              mountPath: /home/ros/www
+          resources:
+            requests:
+              cpu: "2"
+              memory: 4Gi
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "4"
+              memory: 8Gi
+              nvidia.com/gpu: "1"
+          securityContext:
+            runAsUser: 1001
+            runAsGroup: 0
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 20
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 90
+            periodSeconds: 30
+            failureThreshold: 5
+
+        - name: zenoh-bridge
+          image: quay.io/ecosystem-appeng/zenoh-bridge-ros2dds:1.9.0
+          args: ["--config", "/etc/zenoh/zenoh-gazebo.json5"]
+          env:
+            - name: RUST_LOG
+              value: warn
+            - name: ROS_AUTOMATIC_DISCOVERY_RANGE
+              value: LOCALHOST
+            - name: RMW_IMPLEMENTATION
+              value: rmw_cyclonedds_cpp
+          volumeMounts:
+            - name: zenoh-config
+              mountPath: /etc/zenoh
+          resources:
+            requests:
+              cpu: 200m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+        - key: g5-gpu
+          operator: Exists
+          effect: NoSchedule
+        - key: g6e-gpu
+          operator: Exists
+          effect: NoSchedule
+
+      volumes:
+        - name: ros-home
+          emptyDir: {}
+        - name: x11-unix
+          emptyDir:
+            medium: Memory
+        - name: zenoh-config
+          configMap:
+            name: zenoh-config
+            items:
+              - key: zenoh-gazebo.json5
+                path: zenoh-gazebo.json5
+        - name: gz-bridge-config
+          configMap:
+            name: gz-bridge-config
+        - name: www-config
+          configMap:
+            name: www-config

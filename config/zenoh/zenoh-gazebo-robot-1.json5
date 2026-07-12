@@ -1,0 +1,17 @@
+// Zenoh client for robot_1's Gazebo pod.
+// ros_namespace prefixes all bridged ROS2 topics with /robot_1 in Zenoh
+// so robots don't collide on /scan, /odom, etc. when sharing one router.
+{
+  mode: "client",
+  connect: {
+    endpoints: ["tcp/zenoh-router:7447"]
+  },
+  scouting: {
+    multicast: { enabled: false }
+  },
+  plugins: {
+    ros2dds: {
+      ros_namespace: "/robot_1"
+    }
+  }
+}

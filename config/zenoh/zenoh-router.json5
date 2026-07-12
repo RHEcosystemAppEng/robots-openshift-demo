@@ -1,0 +1,21 @@
+// Central Zenoh router configuration
+// Listens on TCP 7447 for incoming client connections
+// Multicast scouting disabled — Kubernetes CNI does not forward multicast between pods
+{
+  mode: "router",
+  listen: {
+    endpoints: ["tcp/0.0.0.0:7447"]
+  },
+  scouting: {
+    multicast: {
+      enabled: false
+    },
+    gossip: {
+      enabled: true
+    }
+  },
+    unicast: {
+      lowlatency: true
+    }
+  }
+}

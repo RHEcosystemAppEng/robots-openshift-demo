@@ -1,0 +1,46 @@
+FROM registry.fedoraproject.org/fedora:43
+
+# ── COPR repo ────────────────────────────────────────────────────────────────
+RUN dnf install -y 'dnf-command(copr)' && \
+    dnf copr enable -y tavie/ros2
+
+# ── System packages ──────────────────────────────────────────────────────────
+RUN dnf install -y \
+        ros-jazzy-ros-base \
+        ros-jazzy-rviz2 \
+        ros-jazzy-nav2-rviz-plugins \
+        ros-jazzy-nav2-minimal-tb3-sim \
+        ros-jazzy-rmw-cyclonedds-cpp \
+        mesa-libGL \
+        mesa-libEGL \
+        mesa-dri-drivers \
+        mesa-vulkan-drivers \
+        xorg-x11-server-Xvfb \
+        x11vnc \
+        novnc \
+        python3-websockify \
+        openbox \
+        python3 && \
+    dnf clean all
+
+# ── Non-root user: UID 1001, GID 0 (restricted-v2 compatible) ───────────────
+RUN useradd -u 1001 -g 0 -M -d /tmp/ros-home ros && \
+    mkdir -p /tmp/ros-home && \
+    chown -R 1001:0 /tmp/ros-home && \
+    chmod -R g+rwX /tmp/ros-home && \
+    chmod 1777 /tmp/.X11-unix || true
+
+# ── Entrypoints and config ───────────────────────────────────────────────────
+COPY entrypoints/entrypoint-viz.sh /usr/local/bin/
+COPY config/rviz /home/ros/rviz
+
+# ── Runtime environment ───────────────────────────────────────────────────────
+ENV HOME=/tmp/ros-home \
+    ROS_HOME=/tmp/ros-home \
+    ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST \
+    RMW_IMPLEMENTATION=rmw_cyclonedds_cpp \
+    DISPLAY=:99
+
+USER 1001
+EXPOSE 6080
+CMD ["/usr/local/bin/entrypoint-viz.sh"]

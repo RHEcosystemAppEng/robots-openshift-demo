@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zenoh-router
+  namespace: robot-demo
+  labels:
+    app: zenoh-router
+    app.kubernetes.io/name: robot-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: zenoh-router
+  template:
+    metadata:
+      labels:
+        app: zenoh-router
+        app.kubernetes.io/name: robot-demo
+    spec:
+      serviceAccountName: robot-demo
+      containers:
+        - name: zenoh
+          image: quay.io/ecosystem-appeng/zenoh-router:1.9.0
+          args: ["--config", "/etc/zenoh/zenoh-router.json5"]
+          ports:
+            - containerPort: 7447
+              protocol: TCP
+              name: zenoh
+          volumeMounts:
+            - name: zenoh-config
+              mountPath: /etc/zenoh
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: false
+          livenessProbe:
+            tcpSocket:
+              port: 7447
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 7447
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: zenoh-config
+          configMap:
+            name: zenoh-config
+            items:
+              - key: zenoh-router.json5
+                path: zenoh-router.json5

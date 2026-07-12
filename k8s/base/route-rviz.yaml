@@ -1,0 +1,19 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: rviz-novnc
+  namespace: robot-demo
+  labels:
+    app: robot-viz
+    app.kubernetes.io/name: robot-demo
+spec:
+  to:
+    kind: Service
+    name: robot-viz
+    weight: 100
+  port:
+    targetPort: 6080
+  wildcardPolicy: None
+  # No TLS: HAProxy edge TLS termination blocks WebSocket upgrades on this cluster.
+  # Using plain HTTP avoids browser HSTS conflicts with the hostname.
+  # Access: http://rviz-novnc-robot-demo.apps.../vnc.html?autoconnect=true&resize=scale

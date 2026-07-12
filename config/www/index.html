@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Robot Demo — OpenShift</title>
+  <style>
+    body { font-family: sans-serif; background: #1a1a2e; color: #eee; margin: 0; padding: 40px; }
+    h1 { color: #e94560; }
+    .card { background: #16213e; border-radius: 8px; padding: 24px; margin: 16px 0; max-width: 640px; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 0.8em; font-weight: bold; margin-left: 8px; vertical-align: middle; }
+    .badge.green { background: #1a6b3c; color: #6effa0; }
+    .badge.amber { background: #6b4a00; color: #ffd27a; }
+    a.btn { display: inline-block; padding: 10px 22px; background: #e94560; color: #fff;
+            text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 12px; }
+    a.btn:hover { background: #c73652; }
+    a.btn.secondary { background: #0f3460; }
+    a.btn.secondary:hover { background: #1a4a80; }
+    code { background: #0f3460; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+    pre { background: #0f3460; padding: 14px; border-radius: 6px; overflow-x: auto; font-size: 0.82em; line-height: 1.5; }
+    .status-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+    .status-item { background: #0f3460; border-radius: 6px; padding: 10px 16px; flex: 1; min-width: 140px; }
+    .status-item .label { font-size: 0.75em; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; }
+    .status-item .value { font-size: 1.1em; font-weight: bold; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Robot Demo on OpenShift</h1>
+  <p>TurtleBot3 Waffle &bull; Gazebo Harmonic &bull; GPU Lidar &bull; SLAM + Nav2 &bull; Zenoh DDS Bridge</p>
+
+  <div class="card">
+    <h2>Simulation Status</h2>
+    <div class="status-row">
+      <div class="status-item">
+        <div class="label">Gazebo</div>
+        <div class="value" style="color:#6effa0;">Running</div>
+      </div>
+      <div class="status-item">
+        <div class="label">Mode</div>
+        <div class="value" style="color:#ffd27a;">GPU Headless</div>
+      </div>
+      <div class="status-item">
+        <div class="label">Robot</div>
+        <div class="value">TurtleBot3 Waffle</div>
+      </div>
+      <div class="status-item">
+        <div class="label">Navigation</div>
+        <div class="value" style="color:#6effa0;">SLAM + Nav2</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Gazebo GUI (noVNC) <span class="badge green">Available</span></h2>
+    <p>View the live Gazebo simulation in your browser via noVNC.</p>
+    <a class="btn" id="novnc-link" href="#" target="_blank">Open Gazebo GUI</a>
+    <p style="margin-top:12px; font-size:0.85em; color:#aaa;">
+      On GPU nodes, Xvfb is started with <code>__EGL_VENDOR_LIBRARY_FILENAMES</code>
+      scoped to Mesa only, preventing NVIDIA EGL from loading into the X server process.
+      Gazebo itself still uses the full NVIDIA EGL ICD for GPU-accelerated lidar rendering.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Verify the Demo is Working</h2>
+    <pre>
+# 1. Confirm scan data is flowing Gazebo → Nav2 via Zenoh
+oc exec -n robot-demo deploy/robot-nav -c nav2 -- \
+  bash -c 'source /usr/lib64/ros-jazzy/setup.bash; \
+           timeout 15 ros2 topic echo /scan --once'
+
+# 2. Check SLAM map size (transient_local QoS required — hz won't work)
+oc exec -n robot-demo deploy/robot-nav -c nav2 -- \
+  bash -c 'source /usr/lib64/ros-jazzy/setup.bash; \
+           ros2 topic echo \
+             --qos-reliability reliable \
+             --qos-durability transient_local \
+             /map --once 2>/dev/null | grep -E "frame_id|width|height|resolution"'
+
+# 3. Check Nav2 is active and robot is navigating
+oc exec -n robot-demo deploy/robot-nav -c nav2 -- \
+  bash -c 'source /usr/lib64/ros-jazzy/setup.bash; \
+           ros2 node list'
+
+# 4. Check Zenoh bridge connectivity (topics visible on Nav2 pod)
+oc exec -n robot-demo deploy/robot-nav -c nav2 -- \
+  bash -c 'source /usr/lib64/ros-jazzy/setup.bash; \
+           ros2 topic list'
+
+# 5. Send a one-shot navigation goal
+oc exec -n robot-demo deploy/robot-nav -c nav2 -- \
+  bash -c 'source /usr/lib64/ros-jazzy/setup.bash; \
+           ros2 topic pub -1 /goal_pose geometry_msgs/msg/PoseStamped \
+             "{header:{frame_id:map},pose:{position:{x:1.0,y:1.0,z:0.0},orientation:{w:1.0}}}"'</pre>
+  </div>
+
+  <div class="card">
+    <h2>Pod Logs</h2>
+    <pre>
+# Gazebo simulation server logs
+oc logs -n robot-demo deploy/gazebo-sim -c gazebo --follow
+
+# Nav2 + SLAM logs
+oc logs -n robot-demo deploy/robot-nav -c nav2 --follow
+
+# Zenoh router logs
+oc logs -n robot-demo deploy/zenoh-router --follow</pre>
+  </div>
+
+  <script>
+    const h = window.location.hostname;
+    const proto = window.location.protocol;
+    const nh = h.replace(/^gzweb/, 'novnc');
+    const l = document.getElementById('novnc-link');
+    if (l) {
+      l.href = proto + '//' + nh + '/vnc.html?autoconnect=true&resize=scale';
+      l.textContent = 'Open Gazebo GUI (' + nh + ')';
+    }
+  </script>
+</body>
+</html>

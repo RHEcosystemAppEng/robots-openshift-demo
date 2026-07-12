@@ -1,0 +1,62 @@
+# Robot 1 — patch base deployments for multi-robot fleet.
+# Topics are namespaced /robot_1/* via the zenoh-bridge ros_namespace config.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gazebo-sim
+  namespace: robot-demo
+spec:
+  template:
+    spec:
+      containers:
+        - name: gazebo
+          env:
+            - name: ROBOT_NAME
+              value: robot_1
+            - name: GZ_SPAWN_POSE_X
+              value: "-3.0"
+            - name: GZ_SPAWN_POSE_Y
+              value: "-3.0"
+            - name: GZ_SPAWN_POSE_THETA
+              value: "0.0"
+        - name: zenoh-bridge
+          env:
+            - name: ROS_DISTRO
+              value: jazzy
+            - name: ROS_NAMESPACE
+              value: /robot_1
+      volumes:
+        - name: zenoh-config
+          configMap:
+            name: zenoh-config
+            items:
+              - key: zenoh-gazebo-robot-1.json5
+                path: zenoh-gazebo.json5
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: robot-nav
+  namespace: robot-demo
+spec:
+  template:
+    spec:
+      containers:
+        - name: nav2
+          env:
+            - name: ROBOT_NAME
+              value: robot_1
+        - name: zenoh-bridge
+          env:
+            - name: ROS_DISTRO
+              value: jazzy
+            - name: ROS_NAMESPACE
+              value: /robot_1
+      volumes:
+        - name: zenoh-config
+          configMap:
+            name: zenoh-config
+            items:
+              - key: zenoh-nav2-robot-1.json5
+                path: zenoh-nav2.json5

@@ -1,0 +1,14 @@
+{
+  mode: "client",
+  connect: {
+    endpoints: ["tcp/zenoh-router:7447"]
+  },
+  scouting: {
+    multicast: { enabled: false }
+  },
+  plugins: {
+    ros2dds: {
+      ros_namespace: "/robot_1"
+    }
+  }
+}

@@ -1,0 +1,17 @@
+// Zenoh client config for the Nav2 pod's zenoh-bridge-ros2dds sidecar
+// Uses exponential backoff retry so Nav2 tolerates Gazebo starting later
+{
+  mode: "client",
+  connect: {
+    endpoints: ["tcp/zenoh-router:7447"]
+  },
+  scouting: {
+    multicast: {
+      enabled: false
+    }
+  },
+    unicast: {
+      lowlatency: true
+    }
+  }
+}

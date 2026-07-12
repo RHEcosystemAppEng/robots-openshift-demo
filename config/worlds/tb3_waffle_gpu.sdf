@@ -1,0 +1,389 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <world name="warehouse">
+
+    <!-- GUI: EntityTree + WorldControl + WorldStats (gz_sim_vendor, no QML — stable).
+         MinimalScene (3D rendering) crashes on GPU nodes due to gz-gui-vendor-0.0.5
+         QML type registration bug. Fix requires a patched gz-gui-vendor RPM. -->
+    <gui fullscreen="0">
+      <plugin filename="EntityTree" name="Entity tree">
+        <gz-gui>
+          <property key="resizable" type="bool">true</property>
+          <property key="state" type="string">docked</property>
+          <property key="showTitleBar">true</property>
+        </gz-gui>
+      </plugin>
+      <plugin filename="WorldControl" name="World control">
+        <gz-gui>
+          <title>World control</title>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="bool" key="resizable">false</property>
+          <property type="double" key="height">72</property>
+          <property type="double" key="z">1</property>
+          <property type="string" key="state">floating</property>
+        </gz-gui>
+        <play_pause>true</play_pause>
+        <step>true</step>
+        <start_paused>false</start_paused>
+      </plugin>
+      <plugin filename="WorldStats" name="World stats">
+        <gz-gui>
+          <title>World stats</title>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="bool" key="resizable">false</property>
+          <property type="double" key="height">110</property>
+          <property type="double" key="z">1</property>
+          <property type="string" key="state">floating</property>
+        </gz-gui>
+        <sim_time>true</sim_time>
+        <real_time>true</real_time>
+        <real_time_factor>true</real_time_factor>
+        <iterations>true</iterations>
+      </plugin>
+    </gui>
+
+    <!-- World plugins -->
+    <plugin filename="gz-sim-physics-system"
+            name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system"
+            name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system"
+            name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system"
+            name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-imu-system"
+            name="gz::sim::systems::Imu"/>
+    <plugin filename="gz-sim-contact-system"
+            name="gz::sim::systems::Contact"/>
+
+    <gravity>0 0 -9.81</gravity>
+    <magnetic_field>6e-6 2.3e-5 -4.2e-5</magnetic_field>
+    <atmosphere type="adiabatic"/>
+
+    <scene>
+      <ambient>0.4 0.4 0.4 1</ambient>
+      <background>0.7 0.7 0.7 1</background>
+      <shadows>false</shadows>
+    </scene>
+
+    <light name="sun" type="directional">
+      <cast_shadows>false</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <!-- Ground plane -->
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+          <surface><contact><collide_bitmask>0xffff</collide_bitmask></contact></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><plane><normal>0 0 1</normal><size>100 100</size></plane></geometry>
+          <material><ambient>0.8 0.8 0.8 1</ambient><diffuse>0.8 0.8 0.8 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ============================================================
+         Warehouse walls — 8 m × 8 m interior, 0.2 m thick, 2 m high
+         ============================================================ -->
+
+    <model name="wall_north">
+      <static>true</static>
+      <pose>0 4.1 1.0 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>8.4 0.2 2.0</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>8.4 0.2 2.0</size></box></geometry>
+          <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="wall_south">
+      <static>true</static>
+      <pose>0 -4.1 1.0 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>8.4 0.2 2.0</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>8.4 0.2 2.0</size></box></geometry>
+          <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="wall_east">
+      <static>true</static>
+      <pose>4.1 0 1.0 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 8.0 2.0</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 8.0 2.0</size></box></geometry>
+          <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="wall_west">
+      <static>true</static>
+      <pose>-4.1 0 1.0 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 8.0 2.0</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 8.0 2.0</size></box></geometry>
+          <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Shelf 1: north of centre -->
+    <model name="shelf_north">
+      <static>true</static>
+      <pose>1.0 1.8 0.75 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 2.5 1.5</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 2.5 1.5</size></box></geometry>
+          <material><ambient>0.3 0.5 0.3 1</ambient><diffuse>0.3 0.5 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Shelf 2: south of centre -->
+    <model name="shelf_south">
+      <static>true</static>
+      <pose>-1.0 -1.8 0.75 0 0 0</pose>
+      <link name="link">
+        <collision name="collision"><geometry><box><size>0.2 2.5 1.5</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>0.2 2.5 1.5</size></box></geometry>
+          <material><ambient>0.3 0.5 0.3 1</ambient><diffuse>0.3 0.5 0.3 1</diffuse></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ============================================================
+         TurtleBot3 Waffle — with GPU lidar
+         Spawned at (-3.0, -3.0), facing east (+X)
+         ============================================================ -->
+    <model name="turtlebot3_waffle">
+      <pose>-3.0 -3.0 0.0 0 0 0</pose>
+
+      <!-- base_footprint: virtual reference frame at ground level -->
+      <link name="base_footprint">
+        <pose>0 0 0 0 0 0</pose>
+        <inertial><mass>0.001</mass></inertial>
+      </link>
+
+      <!-- base_link: chassis -->
+      <link name="base_link">
+        <pose>0 0 0.010 0 0 0</pose>
+        <inertial>
+          <mass>1.3729096</mass>
+          <inertia>
+            <ixx>8.7002e-3</ixx><ixy>-4.24e-5</ixy><ixz>1.4876e-4</ixz>
+            <iyy>8.6167e-3</iyy><iyz>-2.96e-5</iyz>
+            <izz>1.3922e-2</izz>
+          </inertia>
+        </inertial>
+        <collision name="base_collision">
+          <geometry><box><size>0.266 0.266 0.094</size></box></geometry>
+        </collision>
+        <visual name="base_visual">
+          <geometry><box><size>0.266 0.266 0.094</size></box></geometry>
+          <material><ambient>0.0 0.0 0.8 1</ambient><diffuse>0.0 0.0 0.8 1</diffuse></material>
+        </visual>
+      </link>
+
+      <!-- wheel_left_link -->
+      <link name="wheel_left_link">
+        <pose>0.0 0.144 0.023 -1.5707963 0 0</pose>
+        <inertial>
+          <mass>0.0284989</mass>
+          <inertia><ixx>1.1175e-5</ixx><ixy>0</ixy><ixz>0</ixz><iyy>1.1175e-5</iyy><iyz>0</iyz><izz>2.0336e-5</izz></inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry><cylinder><radius>0.033</radius><length>0.018</length></cylinder></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.033</radius><length>0.018</length></cylinder></geometry>
+          <material><ambient>0.1 0.1 0.1 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+        </visual>
+      </link>
+
+      <!-- wheel_right_link -->
+      <link name="wheel_right_link">
+        <pose>0.0 -0.144 0.023 -1.5707963 0 0</pose>
+        <inertial>
+          <mass>0.0284989</mass>
+          <inertia><ixx>1.1175e-5</ixx><ixy>0</ixy><ixz>0</ixz><iyy>1.1175e-5</iyy><iyz>0</iyz><izz>2.0336e-5</izz></inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry><cylinder><radius>0.033</radius><length>0.018</length></cylinder></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.033</radius><length>0.018</length></cylinder></geometry>
+          <material><ambient>0.1 0.1 0.1 1</ambient><diffuse>0.1 0.1 0.1 1</diffuse></material>
+        </visual>
+      </link>
+
+      <!-- caster_back_left_link -->
+      <link name="caster_back_left_link">
+        <pose>-0.177 0.064 -0.004 0 0 0</pose>
+        <inertial><mass>0.001</mass><inertia><ixx>1e-6</ixx><ixy>0</ixy><ixz>0</ixz><iyy>1e-6</iyy><iyz>0</iyz><izz>1e-6</izz></inertia></inertial>
+        <collision name="collision">
+          <geometry><sphere><radius>0.005</radius></sphere></geometry>
+          <surface><contact><ode><soft_cfm>0</soft_cfm><soft_erp>0.2</soft_erp><kp>1e+5</kp><kd>1</kd><min_depth>0.001</min_depth><max_vel>0.1</max_vel></ode></contact></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><sphere><radius>0.005</radius></sphere></geometry>
+          <material><ambient>0.0 0.0 0.0 1</ambient></material>
+        </visual>
+      </link>
+
+      <!-- caster_back_right_link -->
+      <link name="caster_back_right_link">
+        <pose>-0.177 -0.064 -0.004 0 0 0</pose>
+        <inertial><mass>0.001</mass><inertia><ixx>1e-6</ixx><ixy>0</ixy><ixz>0</ixz><iyy>1e-6</iyy><iyz>0</iyz><izz>1e-6</izz></inertia></inertial>
+        <collision name="collision">
+          <geometry><sphere><radius>0.005</radius></sphere></geometry>
+          <surface><contact><ode><soft_cfm>0</soft_cfm><soft_erp>0.2</soft_erp><kp>1e+5</kp><kd>1</kd><min_depth>0.001</min_depth><max_vel>0.1</max_vel></ode></contact></surface>
+        </collision>
+        <visual name="visual">
+          <geometry><sphere><radius>0.005</radius></sphere></geometry>
+          <material><ambient>0.0 0.0 0.0 1</ambient></material>
+        </visual>
+      </link>
+
+      <!-- imu_link -->
+      <link name="imu_link">
+        <pose>-0.032 0 0.068 0 0 0</pose>
+        <inertial><mass>0.001</mass><inertia><ixx>1e-6</ixx><ixy>0</ixy><ixz>0</ixz><iyy>1e-6</iyy><iyz>0</iyz><izz>1e-6</izz></inertia></inertial>
+        <sensor name="imu" type="imu">
+          <always_on>true</always_on>
+          <update_rate>200</update_rate>
+          <topic>imu</topic>
+          <imu>
+            <angular_velocity><x><noise type="gaussian"><mean>0</mean><stddev>2e-4</stddev></noise></x><y><noise type="gaussian"><mean>0</mean><stddev>2e-4</stddev></noise></y><z><noise type="gaussian"><mean>0</mean><stddev>2e-4</stddev></noise></z></angular_velocity>
+            <linear_acceleration><x><noise type="gaussian"><mean>0</mean><stddev>1.7e-2</stddev></noise></x><y><noise type="gaussian"><mean>0</mean><stddev>1.7e-2</stddev></noise></y><z><noise type="gaussian"><mean>0</mean><stddev>1.7e-2</stddev></noise></z></linear_acceleration>
+          </imu>
+        </sensor>
+      </link>
+
+      <!-- base_scan: GPU lidar -->
+      <link name="base_scan">
+        <pose>-0.064 0 0.121 0 0 0</pose>
+        <inertial><mass>0.114</mass><inertia><ixx>1.0e-3</ixx><ixy>0</ixy><ixz>0</ixz><iyy>1.0e-3</iyy><iyz>0</iyz><izz>1.0e-3</izz></inertia></inertial>
+        <collision name="collision">
+          <geometry><cylinder><radius>0.0508</radius><length>0.055</length></cylinder></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><cylinder><radius>0.0508</radius><length>0.055</length></cylinder></geometry>
+          <material><ambient>0.0 0.0 0.0 1</ambient></material>
+        </visual>
+        <sensor name="lidar" type="gpu_lidar">
+          <pose>0 0 0 0 0 0</pose>
+          <topic>scan</topic>
+          <update_rate>10</update_rate>
+          <ray>
+            <scan>
+              <horizontal>
+                <samples>360</samples>
+                <resolution>1</resolution>
+                <min_angle>-3.14159265</min_angle>
+                <max_angle>3.14159265</max_angle>
+              </horizontal>
+              <vertical>
+                <samples>1</samples>
+                <min_angle>0</min_angle>
+                <max_angle>0</max_angle>
+              </vertical>
+            </scan>
+            <range>
+              <min>0.12</min>
+              <max>3.5</max>
+              <resolution>0.015</resolution>
+            </range>
+            <noise>
+              <type>gaussian</type>
+              <mean>0</mean>
+              <stddev>0.01</stddev>
+            </noise>
+          </ray>
+          <visualize>false</visualize>
+          <always_on>true</always_on>
+        </sensor>
+      </link>
+
+      <!-- Joints -->
+      <joint name="base_joint" type="fixed">
+        <parent>base_footprint</parent>
+        <child>base_link</child>
+      </joint>
+
+      <joint name="wheel_left_joint" type="revolute">
+        <parent>base_link</parent>
+        <child>wheel_left_link</child>
+        <axis><xyz>0 0 1</xyz><limit><effort>100</effort><velocity>100</velocity></limit></axis>
+      </joint>
+
+      <joint name="wheel_right_joint" type="revolute">
+        <parent>base_link</parent>
+        <child>wheel_right_link</child>
+        <axis><xyz>0 0 1</xyz><limit><effort>100</effort><velocity>100</velocity></limit></axis>
+      </joint>
+
+      <joint name="caster_back_left_joint" type="ball">
+        <parent>base_link</parent>
+        <child>caster_back_left_link</child>
+      </joint>
+
+      <joint name="caster_back_right_joint" type="ball">
+        <parent>base_link</parent>
+        <child>caster_back_right_link</child>
+      </joint>
+
+      <joint name="imu_joint" type="fixed">
+        <parent>base_link</parent>
+        <child>imu_link</child>
+      </joint>
+
+      <joint name="scan_joint" type="fixed">
+        <parent>base_link</parent>
+        <child>base_scan</child>
+      </joint>
+
+      <!-- DiffDrive plugin -->
+      <plugin filename="gz-sim-diff-drive-system"
+              name="gz::sim::systems::DiffDrive">
+        <left_joint>wheel_left_joint</left_joint>
+        <right_joint>wheel_right_joint</right_joint>
+        <wheel_separation>0.287</wheel_separation>
+        <wheel_radius>0.033</wheel_radius>
+        <odom_publish_frequency>50</odom_publish_frequency>
+        <topic>cmd_vel</topic>
+        <odom_topic>odom</odom_topic>
+        <tf_topic>tf</tf_topic>
+        <frame_id>odom</frame_id>
+        <child_frame_id>base_footprint</child_frame_id>
+        <min_acceleration>-1</min_acceleration>
+        <max_acceleration>1</max_acceleration>
+      </plugin>
+
+      <!-- Joint state publisher plugin -->
+      <plugin filename="gz-sim-joint-state-publisher-system"
+              name="gz::sim::systems::JointStatePublisher">
+        <topic>joint_states</topic>
+      </plugin>
+
+    </model>
+
+  </world>
+</sdf>

@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: www-config
+  namespace: robot-demo
+  labels:
+    app.kubernetes.io/name: robot-demo
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head><meta charset="UTF-8"/><title>Robot Demo — OpenShift</title>
+    <style>
+    body{font-family:sans-serif;background:#1a1a2e;color:#eee;margin:0;padding:40px}
+    h1{color:#e94560}.card{background:#16213e;border-radius:8px;padding:24px;margin:16px 0;max-width:640px}
+    a.btn{display:inline-block;padding:12px 24px;background:#e94560;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold;margin-top:12px}
+    code{background:#0f3460;padding:2px 6px;border-radius:4px}
+    pre{background:#0f3460;padding:12px;border-radius:6px;overflow-x:auto;font-size:0.85em}
+    </style></head>
+    <body>
+    <h1>Robot Demo on OpenShift</h1>
+    <p>TurtleBot3 Waffle &bull; Gazebo Harmonic &bull; SLAM + Nav2 &bull; Zenoh DDS Bridge</p>
+    <div class="card">
+    <h2>Gazebo GUI (noVNC)</h2>
+    <a class="btn" id="novnc-link" href="#" target="_blank">Open Gazebo GUI</a>
+    </div>
+    <div class="card"><h2>Quick Checks</h2>
+    <pre>
+    # Scan data from Gazebo → Nav2
+    oc exec -n robot-demo deploy/robot-nav -c nav2 -- \
+      bash -c 'source /usr/lib64/ros-jazzy/setup.bash; \
+               timeout 10 ros2 topic echo /scan --once'
+    </pre></div>
+    <script>
+    const h=window.location.hostname;
+    const proto=window.location.protocol;
+    const nh=h.replace(/^gzweb/,'novnc');
+    const l=document.getElementById('novnc-link');
+    l.href=proto+'//'+nh+'/vnc.html?autoconnect=true&resize=scale';
+    l.textContent='Open Gazebo GUI ('+nh+')';
+    </script></body></html>

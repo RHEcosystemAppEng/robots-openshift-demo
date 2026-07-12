@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: robot-demo
+  annotations:
+    k8s.ovn.org/multicast-enabled: "true"
+  labels:
+    app.kubernetes.io/name: robot-demo

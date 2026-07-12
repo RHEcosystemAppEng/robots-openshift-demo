@@ -1,0 +1,15 @@
+# World SDF files are baked into the robot-demo-gazebo image at /home/ros/worlds/
+# To override a world at runtime, update this ConfigMap and mount it:
+#   key: tb3_waffle_gpu.sdf  → mountPath: /home/ros/worlds/tb3_waffle_gpu.sdf  subPath: tb3_waffle_gpu.sdf
+#   key: tb3_waffle_cpu.sdf  → mountPath: /home/ros/worlds/tb3_waffle_cpu.sdf  subPath: tb3_waffle_cpu.sdf
+# Use WORLD_FILE env var in the Deployment to select which SDF to load.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: worlds-config
+  namespace: robot-demo
+  labels:
+    app.kubernetes.io/name: robot-demo
+data:
+  # Placeholder — add SDF content here to override image-baked worlds
+  world_override: ""
