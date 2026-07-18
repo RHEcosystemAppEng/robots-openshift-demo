@@ -53,6 +53,13 @@ echo "[TF] Publishing static TF: ${ROBOT_NAME}/base_scan -> ${ROBOT_MODEL}/base_
 ros2 run tf2_ros static_transform_publisher \
   --frame-id "${ROBOT_NAME}/base_scan" \
   --child-frame-id "${ROBOT_MODEL}/base_scan/lidar" &
+
+# Alias for bt_navigator compatibility: it uses robot_base_frame 'base_footprint'
+# but SLAM publishes robot_N/base_footprint. Bridge them with an identity TF.
+echo "[TF] Publishing alias TF: ${ROBOT_NAME}/base_footprint -> base_footprint"
+ros2 run tf2_ros static_transform_publisher \
+  --frame-id "${ROBOT_NAME}/base_footprint" \
+  --child-frame-id "base_footprint" &
 sleep 2
 
 # ── 5. robot_state_publisher with per-robot frame prefix ──────────────────────
