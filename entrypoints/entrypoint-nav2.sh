@@ -36,7 +36,7 @@ ros2 topic echo /scan > /dev/null 2>&1 &
 SCAN_ECHO_PID=$!
 
 echo "[Nav2] Waiting for real /scan data..."
-for i in $(seq 1 120); do
+for i in $(seq 1 200); do
   if { timeout 4 ros2 topic hz /scan 2>/dev/null || true; } | grep -q "average rate"; then
     echo "[Nav2] /scan data confirmed flowing (${i}x3 s waited)"
     break
