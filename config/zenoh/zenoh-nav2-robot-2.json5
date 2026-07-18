@@ -1,13 +1,13 @@
 // Zenoh client for robot_2's Nav2 pod.
-// No ros_namespace (not supported in zenoh-bridge-ros2dds 1.9.0).
-// topic_relay.py inside the pod bridges /robot_2/* ↔ bare topic names.
+// namespace: "/robot_2" prefixes all bridged topics in Zenoh.
 {
   mode: "client",
   connect: { endpoints: ["tcp/zenoh-router:7447"] },
   scouting: { multicast: { enabled: false } },
   plugins: {
     ros2dds: {
-      allow: "^/(robot_2/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|robot_description)|clock|ros_discovery_info|rosout)$"
+      namespace: "/robot_2",
+      allow: "^(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|clock|ros_discovery_info|rosout)$"
     }
   }
 }
