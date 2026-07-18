@@ -13,8 +13,8 @@ def generate_launch_description():
 
     declare_params = DeclareLaunchArgument(
         "params_file",
-        default_value="/home/ros/nav2/nav2_params.yaml",
-        description="Nav2 parameters file",
+        default_value="/tmp/ros-home/nav2_params.yaml",
+        description="Nav2 parameters file (envsubst-generated with ROBOT_NAME)",
     )
     declare_sim_time = DeclareLaunchArgument(
         "use_sim_time",

@@ -87,7 +87,6 @@ data:
       ros__parameters:
         use_sim_time: true
         global_frame: map
-        robot_base_frame: ${ROBOT_NAME}/base_footprint
         odom_topic: /odom
         bt_loop_duration: 10
         default_server_timeout: 20
@@ -143,8 +142,6 @@ data:
           - nav2_back_up_cancel_bt_node
           - nav2_assisted_teleop_cancel_bt_node
           - nav2_drive_on_heading_cancel_bt_node
-          - nav2_navigate_through_poses_action_bt_node
-          - nav2_navigate_to_pose_action_bt_node
 
     controller_server:
       ros__parameters:
