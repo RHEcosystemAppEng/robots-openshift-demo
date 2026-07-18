@@ -16,7 +16,7 @@ data:
       }
     }
 
-  # Gazebo pod: no ros_namespace (bridge.yaml already publishes /robot_N/* topics)
+  # Gazebo pod: routes /robot_N/* topics between Gazebo and nav2 pods
   zenoh-gazebo.json5: |
     {
       mode: "client",
@@ -24,12 +24,13 @@ data:
       scouting: { multicast: { enabled: false } },
       plugins: {
         ros2dds: {
-          allow: "^/(robot_[12]/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static)|clock|ros_discovery_info|rosout)$"
+          allow: "^/(robot_[12]/(scan|odom|imu|joint_states|cmd_vel)|clock|ros_discovery_info|rosout)$"
         }
       }
     }
 
-  # Nav2 pod (default / robot_1): ros_namespace strips /robot_1 prefix so SLAM sees bare /scan
+  # Nav2 pod (base / robot_1): topic_relay.py inside the pod bridges /robot_1/* ↔ bare topics.
+  # No ros_namespace — not supported in zenoh-bridge-ros2dds 1.9.0.
   zenoh-nav2.json5: |
     {
       mode: "client",
@@ -37,13 +38,12 @@ data:
       scouting: { multicast: { enabled: false } },
       plugins: {
         ros2dds: {
-          ros_namespace: "/robot_1",
-          allow: "^(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|clock|robot_description|navigate_to_pose|goal_pose|ros_discovery_info|rosout)$"
+          allow: "^/(robot_1/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|robot_description)|clock|ros_discovery_info|rosout)$"
         }
       }
     }
 
-  # Per-robot Gazebo config (multi-robot overlay — same as base gazebo config)
+  # Per-robot Gazebo config — same as base (shared Gazebo pod, one world)
   zenoh-gazebo-robot-1.json5: |
     {
       mode: "client",
@@ -51,7 +51,7 @@ data:
       scouting: { multicast: { enabled: false } },
       plugins: {
         ros2dds: {
-          allow: "^/(robot_[12]/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static)|clock|ros_discovery_info|rosout)$"
+          allow: "^/(robot_[12]/(scan|odom|imu|joint_states|cmd_vel)|clock|ros_discovery_info|rosout)$"
         }
       }
     }
@@ -63,11 +63,12 @@ data:
       scouting: { multicast: { enabled: false } },
       plugins: {
         ros2dds: {
-          allow: "^/(robot_[12]/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static)|clock|ros_discovery_info|rosout)$"
+          allow: "^/(robot_[12]/(scan|odom|imu|joint_states|cmd_vel)|clock|ros_discovery_info|rosout)$"
         }
       }
     }
 
+  # Per-robot Nav2 configs — no ros_namespace, explicit /robot_N/* allow filter
   zenoh-nav2-robot-1.json5: |
     {
       mode: "client",
@@ -75,8 +76,7 @@ data:
       scouting: { multicast: { enabled: false } },
       plugins: {
         ros2dds: {
-          ros_namespace: "/robot_1",
-          allow: "^(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|clock|robot_description|navigate_to_pose|goal_pose|ros_discovery_info|rosout)$"
+          allow: "^/(robot_1/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|robot_description)|clock|ros_discovery_info|rosout)$"
         }
       }
     }
@@ -88,13 +88,12 @@ data:
       scouting: { multicast: { enabled: false } },
       plugins: {
         ros2dds: {
-          ros_namespace: "/robot_2",
-          allow: "^(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|clock|robot_description|navigate_to_pose|goal_pose|ros_discovery_info|rosout)$"
+          allow: "^/(robot_2/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|robot_description)|clock|ros_discovery_info|rosout)$"
         }
       }
     }
 
-  # Viz pod: no ros_namespace; receives /robot_1/* and /robot_2/* from Zenoh as-is
+  # Viz pod: receives /robot_N/* topics; tf_relay.py merges TF into /tf for RViz
   zenoh-viz.json5: |
     {
       mode: "client",

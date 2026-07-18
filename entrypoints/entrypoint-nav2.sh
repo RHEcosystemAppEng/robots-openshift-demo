@@ -20,7 +20,17 @@ echo "[TF] Starting odom→base_footprint TF broadcaster (${ROBOT_NAME})"
 ROBOT_NAME=${ROBOT_NAME} python3 /usr/local/lib/odom_to_tf.py &
 sleep 2
 
-# ── 2. Wait for real /scan data from Gazebo via Zenoh ────────────────────────
+# ── 2. Topic relay: /robot_N/* ↔ bare topics ────────────────────────────────
+# zenoh-bridge-ros2dds 1.9.0 does not support ros_namespace config.
+# This relay bridges between Zenoh-routed /robot_N/* topics and the bare
+# topic names that SLAM, Nav2, and patrol expect (e.g. /scan, /odom, /tf).
+echo "[Relay] Starting topic_relay for ${ROBOT_NAME}"
+ROBOT_NAME=${ROBOT_NAME} python3 /usr/local/lib/topic_relay.py &
+RELAY_PID=$!
+sleep 2
+
+# ── 3. Wait for real /scan data from Gazebo via Zenoh ────────────────────────
+# The relay subscribes to /${ROBOT_NAME}/scan from Zenoh and republishes as /scan.
 echo "[Nav2] Subscribing to /scan to hold Zenoh route open..."
 ros2 topic echo /scan > /dev/null 2>&1 &
 SCAN_ECHO_PID=$!
@@ -35,7 +45,7 @@ for i in $(seq 1 120); do
   sleep 3
 done
 
-# ── 3. Static TF: bridge URDF frame to Gazebo scoped sensor frame ─────────────
+# ── 4. Static TF: bridge URDF frame to Gazebo scoped sensor frame ─────────────
 # Gazebo publishes scan with frame_id '<model>/base_scan/lidar'.
 # robot_state_publisher (with frame_prefix) publishes '<robot_name>/base_scan'.
 # Connect them with a static identity transform.
@@ -45,7 +55,7 @@ ros2 run tf2_ros static_transform_publisher \
   --child-frame-id "${ROBOT_MODEL}/base_scan/lidar" &
 sleep 2
 
-# ── 4. robot_state_publisher with per-robot frame prefix ──────────────────────
+# ── 5. robot_state_publisher with per-robot frame prefix ──────────────────────
 # Publishes URDF joint TF as robot_N/base_link, robot_N/base_scan, etc.
 # Publishes /robot_N/robot_description for RViz RobotModel display.
 echo "[RSP] Starting robot_state_publisher (frame_prefix=${ROBOT_NAME}/)"
@@ -63,7 +73,7 @@ else
 fi
 sleep 2
 
-# ── 5. SLAM Toolbox (with per-robot frame names via envsubst) ─────────────────
+# ── 6. SLAM Toolbox (with per-robot frame names via envsubst) ─────────────────
 echo "[SLAM] Generating slam_params.yaml for ${ROBOT_NAME}"
 ROBOT_NAME=${ROBOT_NAME} envsubst < /home/ros/nav2/slam_params.yaml \
   > /tmp/ros-home/slam_params.yaml
@@ -103,7 +113,7 @@ for i in $(seq 1 120); do
   sleep 3
 done
 
-# ── 6. Nav2 bringup (parameterized via envsubst) ─────────────────────────────
+# ── 7. Nav2 bringup (parameterized via envsubst) ─────────────────────────────
 echo "[Nav2] Generating nav2_params.yaml for ${ROBOT_NAME}"
 ROBOT_NAME=${ROBOT_NAME} envsubst < /home/ros/nav2/nav2_params.yaml \
   > /tmp/ros-home/nav2_params.yaml
@@ -134,13 +144,13 @@ for i in $(seq 1 36); do
   sleep 5
 done
 
-# ── 7. Patrol mission ─────────────────────────────────────────────────────────
+# ── 8. Patrol mission ─────────────────────────────────────────────────────────
 echo "[Patrol] Starting patrol.py (${ROBOT_NAME})"
 ROBOT_NAME=${ROBOT_NAME} python3 /home/ros/patrol/patrol.py &
 PATROL_PID=$!
 
 echo "=== Nav2 pod ready (${ROBOT_NAME}) ==="
 
-wait -n ${SLAM_PID} ${NAV2_PID} ${PATROL_PID} || true
+wait -n ${SLAM_PID} ${NAV2_PID} ${PATROL_PID} ${RELAY_PID} || true
 echo "A child process exited -- shutting down"
-kill ${SLAM_PID} ${NAV2_PID} ${PATROL_PID} 2>/dev/null || true
+kill ${SLAM_PID} ${NAV2_PID} ${PATROL_PID} ${RELAY_PID} 2>/dev/null || true

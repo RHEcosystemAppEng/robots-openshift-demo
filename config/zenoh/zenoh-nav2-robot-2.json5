@@ -1,14 +1,13 @@
 // Zenoh client for robot_2's Nav2 pod.
-// ros_namespace: "/robot_2" maps Zenoh key ros2/robot_2/scan → local DDS /scan,
-// and local DDS /map → ros2/robot_2/map, so SLAM/Nav2 see bare topic names.
+// No ros_namespace (not supported in zenoh-bridge-ros2dds 1.9.0).
+// topic_relay.py inside the pod bridges /robot_2/* ↔ bare topic names.
 {
   mode: "client",
   connect: { endpoints: ["tcp/zenoh-router:7447"] },
   scouting: { multicast: { enabled: false } },
   plugins: {
     ros2dds: {
-      ros_namespace: "/robot_2",
-      allow: "^(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|clock|robot_description|navigate_to_pose|goal_pose|ros_discovery_info|rosout)$"
+      allow: "^/(robot_2/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|robot_description)|clock|ros_discovery_info|rosout)$"
     }
   }
 }

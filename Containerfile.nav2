@@ -28,9 +28,10 @@ COPY config/nav2    /home/ros/nav2
 COPY config/patrol  /home/ros/patrol
 
 # ── Runtime helpers (not in /home/ros/nav2 so ConfigMap mount doesn't hide them)
-COPY config/nav2/odom_to_tf.py  /usr/local/lib/odom_to_tf.py
-COPY config/nav2/nav2_launch.py /usr/local/lib/nav2_launch.py
-COPY config/nav2/tf_relay.py    /usr/local/lib/tf_relay.py
+COPY config/nav2/odom_to_tf.py   /usr/local/lib/odom_to_tf.py
+COPY config/nav2/nav2_launch.py  /usr/local/lib/nav2_launch.py
+COPY config/nav2/tf_relay.py     /usr/local/lib/tf_relay.py
+COPY config/nav2/topic_relay.py  /usr/local/lib/topic_relay.py
 
 # ── Runtime environment ───────────────────────────────────────────────────────
 ENV HOME=/tmp/ros-home \
