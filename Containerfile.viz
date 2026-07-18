@@ -33,6 +33,7 @@ RUN useradd -u 1001 -g 0 -M -d /tmp/ros-home ros && \
 # ── Entrypoints and config ───────────────────────────────────────────────────
 COPY entrypoints/entrypoint-viz.sh /usr/local/bin/
 COPY config/rviz /home/ros/rviz
+COPY config/nav2/tf_relay.py /usr/local/lib/tf_relay.py
 
 # ── Runtime environment ───────────────────────────────────────────────────────
 ENV HOME=/tmp/ros-home \

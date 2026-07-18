@@ -76,7 +76,7 @@ spec:
 
         - name: zenoh-bridge
           image: quay.io/ecosystem-appeng/zenoh-bridge-ros2dds:1.9.0
-          args: ["--config", "/etc/zenoh/zenoh-nav2.json5"]
+          args: ["--config", "/etc/zenoh/zenoh-viz.json5"]
           env:
             - name: RUST_LOG
               value: warn
@@ -112,5 +112,5 @@ spec:
           configMap:
             name: zenoh-config
             items:
-              - key: zenoh-nav2.json5
-                path: zenoh-nav2.json5
+              - key: zenoh-viz.json5
+                path: zenoh-viz.json5

@@ -8,32 +8,25 @@ mkdir -p /tmp/ros-home
 
 source /usr/lib64/ros-jazzy/setup.bash
 
-echo "=== Robot Demo: Nav2 pod starting ==="
+# ROBOT_NAME controls TF frame prefix: robot_1/odom, robot_1/base_footprint, etc.
+# ROBOT_MODEL is the Gazebo model name for the static lidar TF frame.
+ROBOT_NAME=${ROBOT_NAME:-robot_1}
+ROBOT_MODEL=${ROBOT_MODEL:-turtlebot3_waffle}
 
-# ── 1. Publish odom→base_footprint TF from /odom ─────────────────────────────
-# ros_gz_bridge drops this TF because Gazebo Harmonic DiffDrive encodes
-# child_frame_id in Pose.header.data rather than Pose.name.
-echo "[TF] Starting odom→base_footprint TF broadcaster"
-python3 /usr/local/lib/odom_to_tf.py &
+echo "=== Robot Demo: Nav2 pod starting (${ROBOT_NAME}) ==="
+
+# ── 1. Publish robot_N/odom→robot_N/base_footprint TF from /odom ─────────────
+echo "[TF] Starting odom→base_footprint TF broadcaster (${ROBOT_NAME})"
+ROBOT_NAME=${ROBOT_NAME} python3 /usr/local/lib/odom_to_tf.py &
 sleep 2
 
 # ── 2. Wait for real /scan data from Gazebo via Zenoh ────────────────────────
-# The zenoh-bridge creates a ghost DDS publisher immediately on startup, making
-# Publisher count: 1 appear even when no data flows.  Check actual message rate.
-# Keep a persistent background subscriber alive so the Zenoh lazy route stays
-# established — repeated short-lived subscribers reset the route each time.
-# Keep a persistent /scan subscriber alive for the entire session.
-# If the only subscriber disappears even briefly, the Zenoh lazy route tears
-# down before SLAM re-subscribes, permanently stopping scan data flow.
-echo "[Nav2] Subscribing to /scan to hold Zenoh route open (lifetime of pod)..."
+echo "[Nav2] Subscribing to /scan to hold Zenoh route open..."
 ros2 topic echo /scan > /dev/null 2>&1 &
 SCAN_ECHO_PID=$!
-# intentionally NOT killed — stays alive until the pod exits
 
-echo "[Nav2] Waiting for real /scan data from Gazebo via Zenoh..."
+echo "[Nav2] Waiting for real /scan data..."
 for i in $(seq 1 120); do
-  # 'timeout' exits 124 (SIGTERM) which with pipefail would override grep's
-  # success exit code; wrap with || true so grep's result is what counts.
   if { timeout 4 ros2 topic hz /scan 2>/dev/null || true; } | grep -q "average rate"; then
     echo "[Nav2] /scan data confirmed flowing (${i}x3 s waited)"
     break
@@ -41,22 +34,44 @@ for i in $(seq 1 120); do
   echo "[Nav2]   ... no /scan data yet (${i}/120)"
   sleep 3
 done
-# SCAN_ECHO_PID left running intentionally — see comment above
 
 # ── 3. Static TF: bridge URDF frame to Gazebo scoped sensor frame ─────────────
-# Gazebo publishes scan with frame_id 'turtlebot3_waffle/base_scan/lidar'.
-# The URDF uses 'base_scan'. Publish an identity static TF to connect them.
-echo "[TF] Publishing static TF: base_scan -> turtlebot3_waffle/base_scan/lidar"
+# Gazebo publishes scan with frame_id '<model>/base_scan/lidar'.
+# robot_state_publisher (with frame_prefix) publishes '<robot_name>/base_scan'.
+# Connect them with a static identity transform.
+echo "[TF] Publishing static TF: ${ROBOT_NAME}/base_scan -> ${ROBOT_MODEL}/base_scan/lidar"
 ros2 run tf2_ros static_transform_publisher \
-  --frame-id base_scan \
-  --child-frame-id "turtlebot3_waffle/base_scan/lidar" &
+  --frame-id "${ROBOT_NAME}/base_scan" \
+  --child-frame-id "${ROBOT_MODEL}/base_scan/lidar" &
 sleep 2
 
-# ── 4. SLAM Toolbox ───────────────────────────────────────────────────────────
+# ── 4. robot_state_publisher with per-robot frame prefix ──────────────────────
+# Publishes URDF joint TF as robot_N/base_link, robot_N/base_scan, etc.
+# Publishes /robot_N/robot_description for RViz RobotModel display.
+echo "[RSP] Starting robot_state_publisher (frame_prefix=${ROBOT_NAME}/)"
+URDF_FILE=$(find /usr/lib64/ros-jazzy /usr/share -name "turtlebot3_waffle.urdf" 2>/dev/null | head -1 || true)
+if [ -n "${URDF_FILE}" ]; then
+  ros2 run robot_state_publisher robot_state_publisher \
+    --ros-args \
+    -p robot_description:="$(cat "${URDF_FILE}")" \
+    -p frame_prefix:="${ROBOT_NAME}/" \
+    --remap /robot_description:=/${ROBOT_NAME}/robot_description &
+  RSP_PID=$!
+else
+  echo "[RSP] Warning: turtlebot3_waffle.urdf not found — skipping robot_state_publisher"
+  RSP_PID=0
+fi
+sleep 2
+
+# ── 5. SLAM Toolbox (with per-robot frame names via envsubst) ─────────────────
+echo "[SLAM] Generating slam_params.yaml for ${ROBOT_NAME}"
+ROBOT_NAME=${ROBOT_NAME} envsubst < /home/ros/nav2/slam_params.yaml \
+  > /tmp/ros-home/slam_params.yaml
+
 echo "[SLAM] Starting slam_toolbox async_slam_toolbox_node"
 ros2 run slam_toolbox async_slam_toolbox_node \
   --ros-args \
-  --params-file /home/ros/nav2/slam_params.yaml \
+  --params-file /tmp/ros-home/slam_params.yaml \
   -p use_sim_time:=true &
 SLAM_PID=$!
 sleep 3
@@ -78,21 +93,21 @@ done
 echo "[SLAM] Activating slam_toolbox lifecycle..."
 ros2 lifecycle set /slam_toolbox activate --spin-time 30 2>&1 || true
 
-# Wait for the full TF chain map→odom→base_footprint to be stable.
-# Checking /map topic alone is insufficient — SLAM publishes the topic
-# before map→odom TF is ready, causing global_costmap to fail during Nav2
-# planner_server activation.
-echo "[SLAM] Waiting for map→base_footprint TF (confirms SLAM is publishing TF)..."
+echo "[SLAM] Waiting for map→${ROBOT_NAME}/base_footprint TF..."
 for i in $(seq 1 120); do
-  if { timeout 5 ros2 run tf2_ros tf2_echo map base_footprint 2>/dev/null || true; } | grep -q "Translation"; then
-    echo "[SLAM] map→base_footprint TF is live (${i}x3 s waited)"
+  if { timeout 5 ros2 run tf2_ros tf2_echo map "${ROBOT_NAME}/base_footprint" 2>/dev/null || true; } | grep -q "Translation"; then
+    echo "[SLAM] map→${ROBOT_NAME}/base_footprint TF is live (${i}x3 s waited)"
     break
   fi
   echo "[SLAM]   ... TF not ready yet (${i}/120)"
   sleep 3
 done
 
-# ── 5. Nav2 bringup (custom launch: core nodes only) ─────────────────────────
+# ── 6. Nav2 bringup (parameterized via envsubst) ─────────────────────────────
+echo "[Nav2] Generating nav2_params.yaml for ${ROBOT_NAME}"
+ROBOT_NAME=${ROBOT_NAME} envsubst < /home/ros/nav2/nav2_params.yaml \
+  > /tmp/ros-home/nav2_params.yaml
+
 echo "[Nav2] Starting nav2_bringup"
 python3 - <<'PYEOF' &
 import sys
@@ -103,7 +118,7 @@ spec = importlib.util.spec_from_file_location("nav2_launch", "/usr/local/lib/nav
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
 
-ls = LaunchService(argv=["params_file:=/home/ros/nav2/nav2_params.yaml", "use_sim_time:=true"])
+ls = LaunchService(argv=["params_file:=/tmp/ros-home/nav2_params.yaml", "use_sim_time:=true"])
 ls.include_launch_description(mod.generate_launch_description())
 sys.exit(ls.run())
 PYEOF
@@ -119,12 +134,12 @@ for i in $(seq 1 36); do
   sleep 5
 done
 
-# ── 6. Patrol mission ─────────────────────────────────────────────────────────
-echo "[Patrol] Starting patrol.py"
-python3 /home/ros/patrol/patrol.py &
+# ── 7. Patrol mission ─────────────────────────────────────────────────────────
+echo "[Patrol] Starting patrol.py (${ROBOT_NAME})"
+ROBOT_NAME=${ROBOT_NAME} python3 /home/ros/patrol/patrol.py &
 PATROL_PID=$!
 
-echo "=== Nav2 pod ready ==="
+echo "=== Nav2 pod ready (${ROBOT_NAME}) ==="
 
 wait -n ${SLAM_PID} ${NAV2_PID} ${PATROL_PID} || true
 echo "A child process exited -- shutting down"

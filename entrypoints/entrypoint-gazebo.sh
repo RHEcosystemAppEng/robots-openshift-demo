@@ -35,21 +35,8 @@ else
   GPU_MODE=false
 fi
 
-# --- Spawn pose: patch the world SDF for multi-robot positioning ---
-SPAWN_X=${GZ_SPAWN_POSE_X:--3.0}
-SPAWN_Y=${GZ_SPAWN_POSE_Y:--3.0}
-SPAWN_THETA=${GZ_SPAWN_POSE_THETA:-0.0}
-ROBOT_LABEL=${ROBOT_NAME:-robot_1}
-echo "[Robot] ${ROBOT_LABEL} spawning at (${SPAWN_X}, ${SPAWN_Y}, theta=${SPAWN_THETA})"
-
-# Only patch if any pose param is explicitly overridden (avoids a redundant copy for robot 1)
-if [ "${SPAWN_X}" != "-3.0" ] || [ "${SPAWN_Y}" != "-3.0" ] || [ "${SPAWN_THETA}" != "0.0" ]; then
-  WORLD_TMP=/tmp/ros-home/world_instance.sdf
-  cp "${WORLD_FILE}" "${WORLD_TMP}"
-  sed -i "s|<pose>-3.0 -3.0 0.0 0 0 0</pose>|<pose>${SPAWN_X} ${SPAWN_Y} 0.0 0 0 ${SPAWN_THETA}</pose>|" "${WORLD_TMP}"
-  export WORLD_FILE="${WORLD_TMP}"
-  echo "[Robot] World SDF patched: ${WORLD_FILE}"
-fi
+# Both robots are fixed in the shared SDF world — no spawn-pose patching needed.
+echo "[Gazebo] Shared world: robot_1 at (-3,-3) east, robot_2 at (3,3) west"
 
 # --- noVNC display stack (both GPU and CPU modes) ---
 # On GPU nodes, NVIDIA's EGL ICD crashes Xvfb if it initialises as the EGL
@@ -105,19 +92,9 @@ ros2 run ros_gz_bridge parameter_bridge \
 BRIDGE_PID=$!
 sleep 3
 
-# --- robot_state_publisher ---
-echo "[RSP] Starting robot_state_publisher"
-URDF_FILE=$(find /usr/lib64/ros-jazzy /usr/share -name "turtlebot3_waffle.urdf" 2>/dev/null | head -1 || true)
-if [ -n "${URDF_FILE}" ]; then
-  ros2 run robot_state_publisher robot_state_publisher \
-    --ros-args -p robot_description:="$(cat "${URDF_FILE}")" &
-  RSP_PID=$!
-else
-  echo "[RSP] Warning: turtlebot3_waffle.urdf not found — skipping robot_state_publisher"
-fi
+# robot_state_publisher runs in each nav2 pod (with per-robot frame_prefix)
 
 echo "=== Gazebo pod ready ==="
-echo "  Robot:        ${ROBOT_LABEL}"
 echo "  Simulation:   ${WORLD_FILE}"
 echo "  Landing page: port 8080"
 [ "${GPU_MODE}" = "false" ] && echo "  noVNC:        port 6080"

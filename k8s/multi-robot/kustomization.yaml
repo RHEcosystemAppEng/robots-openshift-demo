@@ -1,9 +1,13 @@
-# Kustomize overlay for Phase 2: two-robot fleet
+# Kustomize overlay for two-robot fleet.
 # Usage: oc apply -k k8s/multi-robot/
 #
-# Each robot gets its own gazebo-sim and robot-nav Deployment pair.
-# All robots share the same zenoh-router Service.
-# Robot isolation: topic namespace prefix /robot_N/ (set via ROBOT_NAME env var).
+# Architecture:
+#   - ONE shared gazebo-sim pod with both robots in one Gazebo world
+#   - TWO robot-nav pods (robot_1 and robot_2), each with SLAM + Nav2 + patrol
+#   - ONE robot-viz pod (tf_relay merges both robots' TF for shared RViz view)
+#
+# Topic isolation: zenoh-bridge ros_namespace /robot_N maps
+#   Zenoh key ros2/robot_N/scan → local DDS /scan within each nav2 pod.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -11,7 +15,7 @@ namespace: robot-demo
 
 resources:
   - ../base
+  - robot-nav-robot-2.yaml
 
 patches:
-  - path: patch-robot-1.yaml
   - path: patch-robot-2.yaml

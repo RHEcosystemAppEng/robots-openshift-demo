@@ -21,20 +21,39 @@ Visualization Manager:
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
       Value: true
+
+    # ── Robot 1 map (blue tones) ──────────────────────────────────────────────
     - Class: rviz_default_plugins/Map
-      Name: Map
+      Name: Map (robot_1)
       Enabled: true
       Topic:
         Depth: 5
         Durability Policy: Transient Local
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /map
+        Value: /robot_1/map
       Alpha: 0.7
       Color Scheme: map
       Draw Behind: false
       Use Timestamp: false
       Value: true
+
+    # ── Robot 2 map (overlaid, slightly transparent) ──────────────────────────
+    - Class: rviz_default_plugins/Map
+      Name: Map (robot_2)
+      Enabled: true
+      Topic:
+        Depth: 5
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /robot_2/map
+      Alpha: 0.5
+      Color Scheme: map
+      Draw Behind: false
+      Use Timestamp: false
+      Value: true
+
     - Class: rviz_default_plugins/TF
       Name: TF
       Enabled: true
@@ -44,15 +63,17 @@ Visualization Manager:
       Show Axes: true
       Show Names: false
       Value: true
+
+    # ── Robot 1 laser scan (red) ───────────────────────────────────────────────
     - Class: rviz_default_plugins/LaserScan
-      Name: LaserScan
+      Name: LaserScan (robot_1)
       Enabled: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Best Effort
-        Value: /scan
+        Value: /robot_1/scan
       Alpha: 1
       Autocompute Intensity Bounds: true
       Color: 255; 0; 0
@@ -60,29 +81,78 @@ Visualization Manager:
       Size (m): 0.05
       Style: Flat Squares
       Value: true
+
+    # ── Robot 2 laser scan (green) ────────────────────────────────────────────
+    - Class: rviz_default_plugins/LaserScan
+      Name: LaserScan (robot_2)
+      Enabled: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /robot_2/scan
+      Alpha: 1
+      Autocompute Intensity Bounds: true
+      Color: 0; 200; 0
+      Color Transformer: FlatColor
+      Size (m): 0.05
+      Style: Flat Squares
+      Value: true
+
+    # ── Robot 1 model ─────────────────────────────────────────────────────────
     - Class: rviz_default_plugins/RobotModel
-      Name: RobotModel
+      Name: RobotModel (robot_1)
       Enabled: true
       Description Topic:
         Depth: 5
         Durability Policy: Transient Local
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /robot_description
-      TF Prefix: ""
+        Value: /robot_1/robot_description
+      TF Prefix: "robot_1/"
       Value: true
       Visual Enabled: true
+
+    # ── Robot 2 model ─────────────────────────────────────────────────────────
+    - Class: rviz_default_plugins/RobotModel
+      Name: RobotModel (robot_2)
+      Enabled: true
+      Description Topic:
+        Depth: 5
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /robot_2/robot_description
+      TF Prefix: "robot_2/"
+      Value: true
+      Visual Enabled: true
+
+    # ── Nav2 planned paths ────────────────────────────────────────────────────
     - Class: rviz_default_plugins/Path
-      Name: NavPlan
+      Name: NavPlan (robot_1)
       Enabled: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /plan
+        Value: /robot_1/plan
       Color: 0; 12; 255
       Value: true
+
+    - Class: rviz_default_plugins/Path
+      Name: NavPlan (robot_2)
+      Enabled: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /robot_2/plan
+      Color: 0; 180; 0
+      Value: true
+
   Fixed Frame: map
   Global Options:
     Background Color: 48; 48; 48
@@ -104,7 +174,7 @@ Visualization Manager:
       Class: rviz_default_plugins/TopDownOrtho
       Name: Current View
       Near Clip Distance: 0.01
-      Scale: 100
+      Scale: 80
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz_default_plugins)
       X: 0

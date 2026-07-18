@@ -6,33 +6,68 @@ metadata:
   labels:
     app.kubernetes.io/name: robot-demo
 data:
+  # Templates processed by envsubst in entrypoint-nav2.sh.
+  # ${ROBOT_NAME} is substituted at pod startup (e.g. robot_1, robot_2).
   slam_params.yaml: |
     slam_toolbox:
       ros__parameters:
-        # Core frames and topics
-        odom_frame: odom
-        map_frame: map
-        base_frame: base_footprint
-        scan_topic: /scan
-        mode: mapping
-        # Solver
         solver_plugin: solver_plugins::CeresSolver
         ceres_linear_solver: SPARSE_NORMAL_CHOLESKY
         ceres_preconditioner: SCHUR_JACOBI
         ceres_trust_strategy: LEVENBERG_MARQUARDT
         ceres_dogleg_type: TRADITIONAL_DOGLEG
         ceres_loss_function: None
-        # Map settings
+
+        odom_frame: ${ROBOT_NAME}/odom
+        map_frame: map
+        base_frame: ${ROBOT_NAME}/base_footprint
+        scan_topic: /scan
+        mode: mapping
+        use_map_saver: true
+        debug_logging: false
+
+        throttle_scans: 1
+        transform_publish_period: 0.02
+        map_update_interval: 5.0
         resolution: 0.05
         max_laser_range: 3.5
-        map_update_interval: 5.0
-        transform_publish_period: 0.02
-        transform_timeout: 0.5
-        tf_buffer_duration: 30.0
         minimum_time_interval: 0.5
-        throttle_scans: 1
+        transform_timeout: 0.2
+        tf_buffer_duration: 30.0
         stack_size_to_use: 40000000
-        debug_logging: false
+        enable_interactive_mode: false
+
+        use_scan_matching: true
+        use_scan_barycenter: true
+        minimum_travel_distance: 0.5
+        minimum_travel_heading: 0.5
+        scan_buffer_size: 10
+        scan_buffer_maximum_scan_distance: 10.0
+        link_match_minimum_response_fine: 0.1
+        link_scan_maximum_distance: 1.5
+        loop_search_maximum_distance: 3.0
+        do_loop_closing: true
+        loop_match_minimum_chain_size: 10
+        loop_match_maximum_variance_coarse: 3.0
+        loop_match_minimum_response_coarse: 0.35
+        loop_match_minimum_response_fine: 0.45
+
+        correlation_search_space_dimension: 0.5
+        correlation_search_space_resolution: 0.01
+        correlation_search_space_smear_deviation: 0.1
+        loop_search_space_dimension: 8.0
+        loop_search_space_resolution: 0.05
+        loop_search_space_smear_deviation: 0.03
+
+        distance_variance_penalty: 0.5
+        angle_variance_penalty: 1.0
+        fine_search_angle_offset: 0.00349
+        coarse_search_angle_offset: 0.349
+        coarse_angle_resolution: 0.0349
+        minimum_angle_penalty: 0.9
+        minimum_distance_penalty: 0.5
+        use_response_expansion: true
+
   nav2_params.yaml: |
     lifecycle_manager_navigation:
       ros__parameters:
@@ -47,22 +82,70 @@ data:
           - bt_navigator
           - waypoint_follower
           - velocity_smoother
-        # docking_server, route_server, collision_monitor excluded —
-        # they require additional plugins/databases not configured for this demo
 
     bt_navigator:
       ros__parameters:
         use_sim_time: true
         global_frame: map
-        robot_base_frame: base_footprint
+        robot_base_frame: ${ROBOT_NAME}/base_footprint
         odom_topic: /odom
         bt_loop_duration: 10
         default_server_timeout: 20
+        wait_for_service_timeout: 1000
         navigators: ["navigate_to_pose", "navigate_through_poses"]
         navigate_to_pose:
           plugin: "nav2_bt_navigator::NavigateToPoseNavigator"
         navigate_through_poses:
           plugin: "nav2_bt_navigator::NavigateThroughPosesNavigator"
+        plugin_lib_names:
+          - nav2_compute_path_to_pose_action_bt_node
+          - nav2_compute_path_through_poses_action_bt_node
+          - nav2_smooth_path_action_bt_node
+          - nav2_follow_path_action_bt_node
+          - nav2_spin_action_bt_node
+          - nav2_wait_action_bt_node
+          - nav2_assisted_teleop_action_bt_node
+          - nav2_back_up_action_bt_node
+          - nav2_drive_on_heading_bt_node
+          - nav2_clear_costmap_service_bt_node
+          - nav2_is_stuck_condition_bt_node
+          - nav2_goal_reached_condition_bt_node
+          - nav2_goal_updated_condition_bt_node
+          - nav2_globally_updated_goal_condition_bt_node
+          - nav2_is_path_valid_condition_bt_node
+          - nav2_initial_pose_received_condition_bt_node
+          - nav2_reinitialize_global_localization_service_bt_node
+          - nav2_rate_controller_bt_node
+          - nav2_distance_controller_bt_node
+          - nav2_speed_controller_bt_node
+          - nav2_truncate_path_action_bt_node
+          - nav2_truncate_path_local_action_bt_node
+          - nav2_goal_updater_node_bt_node
+          - nav2_recovery_node_bt_node
+          - nav2_pipeline_sequence_bt_node
+          - nav2_round_robin_node_bt_node
+          - nav2_transform_available_condition_bt_node
+          - nav2_time_expired_condition_bt_node
+          - nav2_path_expiring_timer_condition
+          - nav2_distance_traveled_condition_bt_node
+          - nav2_single_trigger_bt_node
+          - nav2_goal_check_condition_bt_node
+          - nav2_navigate_to_pose_action_bt_node
+          - nav2_navigate_through_poses_action_bt_node
+          - nav2_remove_passed_goals_action_bt_node
+          - nav2_planner_selector_bt_node
+          - nav2_controller_selector_bt_node
+          - nav2_goal_checker_selector_bt_node
+          - nav2_controller_cancel_bt_node
+          - nav2_path_longer_on_approach_bt_node
+          - nav2_wait_cancel_bt_node
+          - nav2_spin_cancel_bt_node
+          - nav2_back_up_cancel_bt_node
+          - nav2_assisted_teleop_cancel_bt_node
+          - nav2_drive_on_heading_cancel_bt_node
+          - nav2_navigate_through_poses_action_bt_node
+          - nav2_navigate_to_pose_action_bt_node
+
     controller_server:
       ros__parameters:
         use_sim_time: true
@@ -85,6 +168,7 @@ data:
           yaw_goal_tolerance: 0.25
         FollowPath:
           plugin: "dwb_core::DWBLocalPlanner"
+          debug_trajectory_details: false
           min_vel_x: 0.0
           min_vel_y: 0.0
           max_vel_x: 0.26
@@ -121,14 +205,15 @@ data:
           RotateToGoal.scale: 32.0
           RotateToGoal.slowing_factor: 5.0
           RotateToGoal.lookahead_time: -1.0
+
     local_costmap:
       local_costmap:
         ros__parameters:
           use_sim_time: true
           update_frequency: 5.0
           publish_frequency: 2.0
-          global_frame: odom
-          robot_base_frame: base_footprint
+          global_frame: ${ROBOT_NAME}/odom
+          robot_base_frame: ${ROBOT_NAME}/base_footprint
           rolling_window: true
           width: 3
           height: 3
@@ -160,6 +245,7 @@ data:
               obstacle_max_range: 2.5
               obstacle_min_range: 0.0
           always_send_full_costmap: true
+
     global_costmap:
       global_costmap:
         ros__parameters:
@@ -167,11 +253,10 @@ data:
           update_frequency: 1.0
           publish_frequency: 1.0
           global_frame: map
-          robot_base_frame: base_footprint
+          robot_base_frame: ${ROBOT_NAME}/base_footprint
           robot_radius: 0.22
           resolution: 0.05
           track_unknown_space: true
-          transform_tolerance: 0.5
           plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
           obstacle_layer:
             plugin: "nav2_costmap_2d::ObstacleLayer"
@@ -195,6 +280,7 @@ data:
             cost_scaling_factor: 3.0
             inflation_radius: 0.55
           always_send_full_costmap: true
+
     planner_server:
       ros__parameters:
         expected_planner_frequency: 20.0
@@ -205,6 +291,7 @@ data:
           tolerance: 0.5
           use_astar: false
           allow_unknown: true
+
     smoother_server:
       ros__parameters:
         use_sim_time: true
@@ -214,8 +301,13 @@ data:
           tolerance: 1.0e-10
           max_its: 1000
           do_refinement: true
+
     behavior_server:
       ros__parameters:
+        local_costmap_topic: local_costmap/costmap_raw
+        global_costmap_topic: global_costmap/costmap_raw
+        local_footprint_topic: local_costmap/published_footprint
+        global_footprint_topic: global_costmap/published_footprint
         cycle_frequency: 10.0
         behavior_plugins: ["spin", "backup", "drive_on_heading", "assisted_teleop", "wait"]
         spin:
@@ -228,15 +320,28 @@ data:
           plugin: "nav2_behaviors::Wait"
         assisted_teleop:
           plugin: "nav2_behaviors::AssistedTeleop"
-        local_frame: odom
+        local_frame: ${ROBOT_NAME}/odom
         global_frame: map
-        robot_base_frame: base_footprint
+        robot_base_frame: ${ROBOT_NAME}/base_footprint
         transform_tolerance: 0.1
         use_sim_time: true
         simulate_ahead_time: 2.0
         max_rotational_vel: 1.0
         min_rotational_vel: 0.4
         rotational_acc_lim: 3.2
+
+    waypoint_follower:
+      ros__parameters:
+        use_sim_time: true
+        loop_rate: 20
+        stop_on_failure: false
+        action_server_result_timeout: 900.0
+        waypoint_task_executor_plugin: "wait_at_waypoint"
+        wait_at_waypoint:
+          plugin: "nav2_waypoint_follower::WaitAtWaypoint"
+          enabled: true
+          waypoint_pause_duration: 200
+
     velocity_smoother:
       ros__parameters:
         use_sim_time: true
@@ -251,80 +356,12 @@ data:
         odom_duration: 0.1
         deadband_velocity: [0.0, 0.0, 0.0]
         velocity_timeout: 1.0
-    waypoint_follower:
-      ros__parameters:
-        use_sim_time: true
-        loop_rate: 20
-        stop_on_failure: false
-        action_server_result_timeout: 900.0
-        waypoint_task_executor_plugin: "wait_at_waypoint"
-        wait_at_waypoint:
-          plugin: "nav2_waypoint_follower::WaitAtWaypoint"
-          enabled: true
-          waypoint_pause_duration: 200
-    collision_monitor:
-      ros__parameters:
-        use_sim_time: true
-        base_frame_id: "base_footprint"
-        odom_frame_id: "odom"
-        cmd_vel_in_topic: "cmd_vel_smoothed"
-        cmd_vel_out_topic: "cmd_vel"
-        state_topic: "collision_monitor_state"
-        transform_tolerance: 0.2
-        source_timeout: 1.0
-        base_shift_correction: true
-        stop_pub_timeout: 2.0
-        polygons: ["FootprintApproach"]
-        FootprintApproach:
-          type: "polygon"
-          action_type: "approach"
-          footprint_topic: "/local_costmap/published_footprint"
-          time_before_collision: 1.2
-          simulation_time_step: 0.1
-          min_points: 6
-          visualize: false
-          enabled: true
-        observation_sources: ["scan"]
-        scan:
-          source_timeout: 0.2
-          type: "scan"
-          topic: "/scan"
-          min_height: 0.15
-          max_height: 2.0
-          enabled: true
-    docking_server:
-      ros__parameters:
-        use_sim_time: true
-        controller_frequency: 50.0
-        initial_perception_timeout: 5.0
-        wait_charge_timeout: 5.0
-        dock_approach_timeout: 30.0
-        undock_linear_tolerance: 0.05
-        undock_angular_tolerance: 0.1
-        max_retries: 3
-        base_frame: "base_link"
-        fixed_frame: "odom"
-        dock_backwards: false
-        dock_prestaging_tolerance: 0.5
-        dock_plugins: ["SimpleChargingDock"]
-        SimpleChargingDock:
-          plugin: "opennav_docking::SimpleChargingDock"
-          docking_threshold: 0.05
-          staging_x_offset: -0.7
-          use_external_detection_pose: false
-          use_battery_status: false
-
-    route_server:
-      ros__parameters:
-        use_sim_time: true
-        graph_filepath: ""
-        operations: []
-        route_server_id: "route_server"
 
     map_server:
       ros__parameters:
         use_sim_time: true
         yaml_filename: ""
+
     map_saver:
       ros__parameters:
         use_sim_time: true

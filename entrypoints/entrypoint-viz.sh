@@ -12,8 +12,6 @@ source /usr/lib64/ros-jazzy/setup.bash
 echo "=== Robot Demo: Viz pod starting ==="
 
 # --- Xvfb virtual framebuffer ---
-# Use -ac (no MIT-MAGIC-COOKIE auth) so x11vnc can connect without auth setup.
-# Scope Mesa EGL to Xvfb so NVIDIA EGL does not crash the X server.
 if nvidia-smi &>/dev/null 2>&1; then
   export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
 fi
@@ -29,22 +27,26 @@ sleep 1
 # --- noVNC ---
 echo "[VNC] Starting x11vnc + noVNC on port 6080"
 # -noxdamage: poll for screen changes instead of relying on XDamage extension.
-# Required for OpenGL/llvmpipe content which doesn't signal XDamage properly,
-# causing the noVNC display to appear frozen even when RViz is updating.
+# Required for OpenGL/llvmpipe content which doesn't signal XDamage properly.
 x11vnc -display :99 -nopw -rfbport 5900 -listen 0.0.0.0 -forever -quiet -noxdamage -ncache 0 &
 X11VNC_PID=$!
 sleep 2
 websockify --web /usr/share/novnc 6080 localhost:5900 &
 NOVNC_PID=$!
 
-# --- Wait for /map to arrive from Zenoh (SLAM must be active) ---
-echo "[RViz] Waiting for /map topic from Nav2 pod via Zenoh..."
+# --- TF relay: merge /robot_1/tf + /robot_2/tf → /tf for RViz ───────────────
+echo "[TF] Starting tf_relay (merging robot_1 + robot_2 TF into /tf)"
+python3 /usr/local/lib/tf_relay.py &
+TF_RELAY_PID=$!
+
+# --- Wait for /robot_1/map to arrive (confirms SLAM + Zenoh are working) -----
+echo "[RViz] Waiting for /robot_1/map topic from Nav2 pod via Zenoh..."
 for i in $(seq 1 120); do
-  if { timeout 4 ros2 topic info /map 2>/dev/null || true; } | grep -q "Publisher count: [1-9]"; then
-    echo "[RViz] /map detected (${i}x3 s waited)"
+  if { timeout 4 ros2 topic info /robot_1/map 2>/dev/null || true; } | grep -q "Publisher count: [1-9]"; then
+    echo "[RViz] /robot_1/map detected (${i}x3 s waited)"
     break
   fi
-  echo "[RViz]   ... no /map yet (${i}/120)"
+  echo "[RViz]   ... no /robot_1/map yet (${i}/120)"
   sleep 3
 done
 
@@ -55,8 +57,8 @@ LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe \
 RVIZ_PID=$!
 
 echo "=== Viz pod ready ==="
-echo "  noVNC: port 6080  (RViz2 map + robot + scan)"
+echo "  noVNC: port 6080  (RViz2 showing both robots)"
 
 wait -n ${RVIZ_PID} ${NOVNC_PID} ${X11VNC_PID} || true
 echo "A child process exited — shutting down"
-kill ${RVIZ_PID} ${NOVNC_PID} ${X11VNC_PID} ${XVFB_PID} 2>/dev/null || true
+kill ${RVIZ_PID} ${NOVNC_PID} ${X11VNC_PID} ${TF_RELAY_PID} ${XVFB_PID} 2>/dev/null || true

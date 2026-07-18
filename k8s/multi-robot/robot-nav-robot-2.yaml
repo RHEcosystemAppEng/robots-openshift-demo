@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: robot-nav
+  name: robot-nav-robot-2
   namespace: robot-demo
   labels:
-    app: robot-nav
+    app: robot-nav-robot-2
     app.kubernetes.io/name: robot-demo
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: robot-nav
+      app: robot-nav-robot-2
   template:
     metadata:
       labels:
-        app: robot-nav
+        app: robot-nav-robot-2
         app.kubernetes.io/name: robot-demo
     spec:
       serviceAccountName: robot-demo
@@ -34,9 +34,9 @@ spec:
           command: ["/usr/local/bin/entrypoint-nav2.sh"]
           env:
             - name: ROBOT_NAME
-              value: robot_1
+              value: robot_2
             - name: ROBOT_MODEL
-              value: turtlebot3_waffle
+              value: turtlebot3_waffle_2
             - name: HOME
               value: /tmp/ros-home
             - name: ROS_HOME
@@ -77,6 +77,8 @@ spec:
           env:
             - name: RUST_LOG
               value: warn
+            - name: ROS_DISTRO
+              value: jazzy
             - name: ROS_AUTOMATIC_DISCOVERY_RANGE
               value: LOCALHOST
             - name: RMW_IMPLEMENTATION
@@ -107,5 +109,5 @@ spec:
           configMap:
             name: zenoh-config
             items:
-              - key: zenoh-nav2.json5
+              - key: zenoh-nav2-robot-2.json5
                 path: zenoh-nav2.json5

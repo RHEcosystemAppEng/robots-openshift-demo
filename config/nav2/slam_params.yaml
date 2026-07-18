@@ -9,9 +9,9 @@ slam_toolbox:
     ceres_dogleg_type: TRADITIONAL_DOGLEG
     ceres_loss_function: None
 
-    odom_frame: odom
+    odom_frame: ${ROBOT_NAME}/odom
     map_frame: map
-    base_frame: base_footprint
+    base_frame: ${ROBOT_NAME}/base_footprint
     scan_topic: /scan
     mode: mapping
     use_map_saver: true

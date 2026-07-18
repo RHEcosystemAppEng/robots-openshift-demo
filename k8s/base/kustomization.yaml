@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: robot-demo
+
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - configmap-gz-bridge.yaml
+  - configmap-nav2.yaml
+  - configmap-worlds.yaml
+  - configmap-www.yaml
+  - configmap-zenoh.yaml
+  - deployment-zenoh-router.yaml
+  - deployment-gazebo.yaml
+  - deployment-nav2.yaml
+  - deployment-viz.yaml
+  - service-zenoh-router.yaml
+  - service-gzweb.yaml
+  - service-novnc.yaml
+  - service-rviz.yaml
+  - route-gzweb.yaml
+  - route-novnc.yaml
+  - route-rviz.yaml

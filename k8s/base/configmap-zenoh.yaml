@@ -9,64 +9,100 @@ data:
   zenoh-router.json5: |
     {
       mode: "router",
-      listen: {
-        endpoints: ["tcp/0.0.0.0:7447"]
-      },
+      listen: { endpoints: ["tcp/0.0.0.0:7447"] },
       scouting: {
         multicast: { enabled: false },
         gossip: { enabled: true }
       }
     }
+
+  # Gazebo pod: no ros_namespace (bridge.yaml already publishes /robot_N/* topics)
   zenoh-gazebo.json5: |
     {
       mode: "client",
-      connect: {
-        endpoints: ["tcp/zenoh-router:7447"]
-      },
-      scouting: {
-        multicast: { enabled: false }
-      },
+      connect: { endpoints: ["tcp/zenoh-router:7447"] },
+      scouting: { multicast: { enabled: false } },
       plugins: {
         ros2dds: {
-          allow: "^(scan|odom|tf|tf_static|clock|imu|joint_states|cmd_vel|ros_discovery_info|rosout)$"
+          allow: "^/(robot_[12]/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static)|clock|ros_discovery_info|rosout)$"
         }
       }
     }
+
+  # Nav2 pod (default / robot_1): ros_namespace strips /robot_1 prefix so SLAM sees bare /scan
   zenoh-nav2.json5: |
     {
       mode: "client",
-      connect: {
-        endpoints: ["tcp/zenoh-router:7447"]
-      },
-      scouting: {
-        multicast: { enabled: false }
+      connect: { endpoints: ["tcp/zenoh-router:7447"] },
+      scouting: { multicast: { enabled: false } },
+      plugins: {
+        ros2dds: {
+          ros_namespace: "/robot_1",
+          allow: "^(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|clock|robot_description|navigate_to_pose|goal_pose|ros_discovery_info|rosout)$"
+        }
       }
     }
+
+  # Per-robot Gazebo config (multi-robot overlay — same as base gazebo config)
   zenoh-gazebo-robot-1.json5: |
     {
       mode: "client",
       connect: { endpoints: ["tcp/zenoh-router:7447"] },
       scouting: { multicast: { enabled: false } },
-      plugins: { ros2dds: { ros_namespace: "/robot_1" } }
+      plugins: {
+        ros2dds: {
+          allow: "^/(robot_[12]/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static)|clock|ros_discovery_info|rosout)$"
+        }
+      }
     }
+
   zenoh-gazebo-robot-2.json5: |
     {
       mode: "client",
       connect: { endpoints: ["tcp/zenoh-router:7447"] },
       scouting: { multicast: { enabled: false } },
-      plugins: { ros2dds: { ros_namespace: "/robot_2" } }
+      plugins: {
+        ros2dds: {
+          allow: "^/(robot_[12]/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static)|clock|ros_discovery_info|rosout)$"
+        }
+      }
     }
+
   zenoh-nav2-robot-1.json5: |
     {
       mode: "client",
       connect: { endpoints: ["tcp/zenoh-router:7447"] },
       scouting: { multicast: { enabled: false } },
-      plugins: { ros2dds: { ros_namespace: "/robot_1" } }
+      plugins: {
+        ros2dds: {
+          ros_namespace: "/robot_1",
+          allow: "^(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|clock|robot_description|navigate_to_pose|goal_pose|ros_discovery_info|rosout)$"
+        }
+      }
     }
+
   zenoh-nav2-robot-2.json5: |
     {
       mode: "client",
       connect: { endpoints: ["tcp/zenoh-router:7447"] },
       scouting: { multicast: { enabled: false } },
-      plugins: { ros2dds: { ros_namespace: "/robot_2" } }
+      plugins: {
+        ros2dds: {
+          ros_namespace: "/robot_2",
+          allow: "^(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|clock|robot_description|navigate_to_pose|goal_pose|ros_discovery_info|rosout)$"
+        }
+      }
+    }
+
+  # Viz pod: no ros_namespace; receives /robot_1/* and /robot_2/* from Zenoh as-is
+  zenoh-viz.json5: |
+    {
+      mode: "client",
+      connect: { endpoints: ["tcp/zenoh-router:7447"] },
+      scouting: { multicast: { enabled: false } },
+      plugins: {
+        ros2dds: {
+          allow: "^/(robot_[12]/(map|scan|tf|tf_static|plan|robot_description)|clock|ros_discovery_info|rosout)$"
+        }
+      }
     }
