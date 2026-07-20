@@ -16,8 +16,8 @@ data:
       }
     }
 
-  # Gazebo pod: no namespace; ros_gz_bridge publishes /robot_N/* topics directly.
-  # Allow filter uses explicit alternation — [12] char class not supported by Zenoh regex.
+  # Gazebo pod: routes /robot_N/* sensor topics from ros_gz_bridge.
+  # Allow filter keeps only sensor+cmd_vel topics to avoid Nav2 announcement floods.
   zenoh-gazebo.json5: |
     {
       mode: "client",
@@ -30,21 +30,14 @@ data:
       }
     }
 
-  # Nav2 pod (base/robot_1): NO namespace (Zenoh 1.9.0 namespace is outbound-only).
-  # topic_relay.py inside the pod bridges /robot_N/* ↔ bare topics:
-  #   inbound:  /robot_1/scan   → /scan   (for SLAM)
-  #   outbound: /tf, /map, etc. → /robot_1/tf, /robot_1/map (for viz)
-  #             /cmd_vel        → /robot_1/cmd_vel (for Gazebo)
+  # Nav2 pods: NO allow filter so ALL topic subscriptions (from topic_relay.py
+  # and early route-holder echo processes) are detected and Zenoh routes established
+  # regardless of startup timing.
   zenoh-nav2.json5: |
     {
       mode: "client",
       connect: { endpoints: ["tcp/zenoh-router:7447"] },
-      scouting: { multicast: { enabled: false } },
-      plugins: {
-        ros2dds: {
-          allow: "^((robot_1|robot_2)/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|robot_description|goal_pose)|clock|ros_discovery_info|rosout)$"
-        }
-      }
+      scouting: { multicast: { enabled: false } }
     }
 
   zenoh-gazebo-robot-1.json5: |
@@ -71,33 +64,23 @@ data:
       }
     }
 
+  # Nav2 per-robot configs: no allow filter (same reason as zenoh-nav2.json5)
   zenoh-nav2-robot-1.json5: |
     {
       mode: "client",
       connect: { endpoints: ["tcp/zenoh-router:7447"] },
-      scouting: { multicast: { enabled: false } },
-      plugins: {
-        ros2dds: {
-          allow: "^((robot_1|robot_2)/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|robot_description|goal_pose)|clock|ros_discovery_info|rosout)$"
-        }
-      }
+      scouting: { multicast: { enabled: false } }
     }
 
   zenoh-nav2-robot-2.json5: |
     {
       mode: "client",
       connect: { endpoints: ["tcp/zenoh-router:7447"] },
-      scouting: { multicast: { enabled: false } },
-      plugins: {
-        ros2dds: {
-          allow: "^((robot_1|robot_2)/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|robot_description|goal_pose)|clock|ros_discovery_info|rosout)$"
-        }
-      }
+      scouting: { multicast: { enabled: false } }
     }
 
-  # Viz pod: no namespace, no allow filter — routes all /robot_N/* topics.
-  # Without a filter the bridge eagerly routes subscriptions from tf_relay.py
-  # (which starts after the bridge), ensuring /robot_N/tf reaches RViz.
+  # Viz pod: no allow filter — routes all /robot_N/* subscriptions from
+  # tf_relay.py regardless of startup timing.
   zenoh-viz.json5: |
     {
       mode: "client",
