@@ -95,15 +95,12 @@ data:
       }
     }
 
-  # Viz pod: no namespace; tf_relay.py merges /robot_N/tf → /tf for RViz
+  # Viz pod: no namespace, no allow filter — routes all /robot_N/* topics.
+  # Without a filter the bridge eagerly routes subscriptions from tf_relay.py
+  # (which starts after the bridge), ensuring /robot_N/tf reaches RViz.
   zenoh-viz.json5: |
     {
       mode: "client",
       connect: { endpoints: ["tcp/zenoh-router:7447"] },
-      scouting: { multicast: { enabled: false } },
-      plugins: {
-        ros2dds: {
-          allow: "^((robot_1|robot_2)/(map|scan|tf|tf_static|plan|robot_description|goal_pose)|clock|ros_discovery_info|rosout)$"
-        }
-      }
+      scouting: { multicast: { enabled: false } }
     }
