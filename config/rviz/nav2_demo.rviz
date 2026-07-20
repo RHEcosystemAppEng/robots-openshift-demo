@@ -167,6 +167,11 @@ Visualization Manager:
       Line color: 128; 128; 0
     - Class: rviz_default_plugins/SetInitialPose
     - Class: rviz_default_plugins/SetGoal
+      Name: "Goal Robot 1 (blue)"
+      Topic: /robot_1/goal_pose
+    - Class: rviz_default_plugins/SetGoal
+      Name: "Goal Robot 2 (orange)"
+      Topic: /robot_2/goal_pose
     - Class: rviz_default_plugins/PublishPoint
   Value: true
   Views:

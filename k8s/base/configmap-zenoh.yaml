@@ -42,7 +42,7 @@ data:
       scouting: { multicast: { enabled: false } },
       plugins: {
         ros2dds: {
-          allow: "^((robot_1|robot_2)/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|robot_description)|clock|ros_discovery_info|rosout)$"
+          allow: "^((robot_1|robot_2)/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|robot_description|goal_pose)|clock|ros_discovery_info|rosout)$"
         }
       }
     }
@@ -78,7 +78,7 @@ data:
       scouting: { multicast: { enabled: false } },
       plugins: {
         ros2dds: {
-          allow: "^((robot_1|robot_2)/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|robot_description)|clock|ros_discovery_info|rosout)$"
+          allow: "^((robot_1|robot_2)/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|robot_description|goal_pose)|clock|ros_discovery_info|rosout)$"
         }
       }
     }
@@ -90,7 +90,7 @@ data:
       scouting: { multicast: { enabled: false } },
       plugins: {
         ros2dds: {
-          allow: "^((robot_1|robot_2)/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|robot_description)|clock|ros_discovery_info|rosout)$"
+          allow: "^((robot_1|robot_2)/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|robot_description|goal_pose)|clock|ros_discovery_info|rosout)$"
         }
       }
     }
@@ -103,7 +103,7 @@ data:
       scouting: { multicast: { enabled: false } },
       plugins: {
         ros2dds: {
-          allow: "^((robot_1|robot_2)/(map|scan|tf|tf_static|plan|robot_description)|clock|ros_discovery_info|rosout)$"
+          allow: "^((robot_1|robot_2)/(map|scan|tf|tf_static|plan|robot_description|goal_pose)|clock|ros_discovery_info|rosout)$"
         }
       }
     }

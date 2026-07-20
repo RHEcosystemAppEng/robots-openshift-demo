@@ -6,10 +6,11 @@ This relay runs inside each nav2 pod and bridges between:
   - /robot_N/* topics (what Zenoh sees in the shared router)
   - bare topics like /scan, /odom, /tf (what SLAM, Nav2, and patrol expect)
 
-Inbound (Gazebo → nav2 internals via Zenoh):
+Inbound (Gazebo / viz → nav2 internals via Zenoh):
   /robot_N/scan         → /scan
   /robot_N/odom         → /odom
   /robot_N/joint_states → /joint_states
+  /robot_N/goal_pose    → /goal_pose   (2D Goal Pose from RViz for this robot)
 
 Outbound (nav2 internals → Zenoh → viz / Gazebo):
   /cmd_vel   → /robot_N/cmd_vel   (motor commands to Gazebo)
@@ -26,7 +27,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import (QoSProfile, ReliabilityPolicy, DurabilityPolicy,
                         HistoryPolicy)
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, PoseStamped
 from nav_msgs.msg import OccupancyGrid, Path, Odometry
 from sensor_msgs.msg import LaserScan, JointState
 from tf2_msgs.msg import TFMessage
@@ -66,6 +67,10 @@ class TopicRelay(Node):
         js_pub = self.create_publisher(JointState, "/joint_states", VOLATILE)
         self.create_subscription(JointState, f"/{n}/joint_states",
                                  lambda m: js_pub.publish(m), VOLATILE)
+
+        goal_pub = self.create_publisher(PoseStamped, "/goal_pose", VOLATILE)
+        self.create_subscription(PoseStamped, f"/{n}/goal_pose",
+                                 lambda m: goal_pub.publish(m), VOLATILE)
 
         # ── Outbound: bare topic → /robot_N/* ───────────────────────────────
         cmd_pub = self.create_publisher(Twist, f"/{n}/cmd_vel", VOLATILE)
