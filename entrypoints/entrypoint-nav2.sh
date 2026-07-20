@@ -15,6 +15,15 @@ ROBOT_MODEL=${ROBOT_MODEL:-turtlebot3_waffle}
 
 echo "=== Robot Demo: Nav2 pod starting (${ROBOT_NAME}) ==="
 
+# ── 0. Early Zenoh route holders ──────────────────────────────────────────────
+# The Zenoh bridge scans DDS shortly after startup. We need DDS subscribers for
+# /robot_N/scan and /robot_N/odom to exist immediately so the bridge establishes
+# Zenoh routes from Gazebo before topic_relay.py starts (which runs ~3s later).
+# Without these, the bridge misses the subscriptions and never routes sensor data.
+ros2 topic echo "/${ROBOT_NAME}/scan" > /dev/null 2>&1 &
+ros2 topic echo "/${ROBOT_NAME}/odom" > /dev/null 2>&1 &
+sleep 1
+
 # ── 1. Publish robot_N/odom→robot_N/base_footprint TF from /odom ─────────────
 echo "[TF] Starting odom→base_footprint TF broadcaster (${ROBOT_NAME})"
 ROBOT_NAME=${ROBOT_NAME} python3 /usr/local/lib/odom_to_tf.py &
