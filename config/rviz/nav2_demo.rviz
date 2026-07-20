@@ -167,10 +167,12 @@ Visualization Manager:
       Line color: 128; 128; 0
     - Class: rviz_default_plugins/SetInitialPose
     - Class: rviz_default_plugins/SetGoal
-      Name: "Goal Robot 1 (blue)"
+      Name: "Goal Robot 1 (blue) [key:1]"
+      Short Key: "1"
       Topic: /robot_1/goal_pose
     - Class: rviz_default_plugins/SetGoal
-      Name: "Goal Robot 2 (orange)"
+      Name: "Goal Robot 2 (orange) [key:2]"
+      Short Key: "2"
       Topic: /robot_2/goal_pose
     - Class: rviz_default_plugins/PublishPoint
   Value: true

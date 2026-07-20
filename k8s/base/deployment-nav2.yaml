@@ -37,6 +37,12 @@ spec:
               value: robot_1
             - name: ROBOT_MODEL
               value: turtlebot3_waffle
+            - name: SLAM_INITIAL_X
+              value: "0.0"
+            - name: SLAM_INITIAL_Y
+              value: "0.0"
+            - name: SLAM_INITIAL_YAW
+              value: "0.0"
             - name: HOME
               value: /tmp/ros-home
             - name: ROS_HOME

@@ -25,6 +25,9 @@ data:
         mode: mapping
         use_map_saver: true
         debug_logging: false
+        initial_pose_x: ${SLAM_INITIAL_X}
+        initial_pose_y: ${SLAM_INITIAL_Y}
+        initial_pose_yaw: ${SLAM_INITIAL_YAW}
 
         throttle_scans: 1
         transform_publish_period: 0.02

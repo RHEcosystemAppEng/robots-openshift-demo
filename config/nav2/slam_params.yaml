@@ -14,6 +14,11 @@ slam_toolbox:
     base_frame: ${ROBOT_NAME}/base_footprint
     scan_topic: /scan
     mode: mapping
+    # Initial pose in the shared map frame.
+    # robot_1 starts at map origin (0,0); robot_2 is 6m east+north of robot_1.
+    initial_pose_x: ${SLAM_INITIAL_X}
+    initial_pose_y: ${SLAM_INITIAL_Y}
+    initial_pose_yaw: ${SLAM_INITIAL_YAW}
     use_map_saver: true
     debug_logging: false
 

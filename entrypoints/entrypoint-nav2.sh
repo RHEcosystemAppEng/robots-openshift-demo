@@ -81,9 +81,13 @@ fi
 sleep 2
 
 # ── 6. SLAM Toolbox (with per-robot frame names via envsubst) ─────────────────
-echo "[SLAM] Generating slam_params.yaml for ${ROBOT_NAME}"
-ROBOT_NAME=${ROBOT_NAME} envsubst < /home/ros/nav2/slam_params.yaml \
-  > /tmp/ros-home/slam_params.yaml
+echo "[SLAM] Generating slam_params.yaml for ${ROBOT_NAME} (initial pose: ${SLAM_INITIAL_X},${SLAM_INITIAL_Y})"
+SLAM_INITIAL_X=${SLAM_INITIAL_X:-0.0} \
+SLAM_INITIAL_Y=${SLAM_INITIAL_Y:-0.0} \
+SLAM_INITIAL_YAW=${SLAM_INITIAL_YAW:-0.0} \
+ROBOT_NAME=${ROBOT_NAME} \
+  envsubst '${ROBOT_NAME}${SLAM_INITIAL_X}${SLAM_INITIAL_Y}${SLAM_INITIAL_YAW}' \
+  < /home/ros/nav2/slam_params.yaml > /tmp/ros-home/slam_params.yaml
 
 echo "[SLAM] Starting slam_toolbox async_slam_toolbox_node"
 ros2 run slam_toolbox async_slam_toolbox_node \
