@@ -35,6 +35,7 @@ data:
         resolution: 0.05
         max_laser_range: 3.5
         minimum_time_interval: 0.5
+        map_start_at_dock: false
         transform_timeout: 0.2
         tf_buffer_duration: 30.0
         stack_size_to_use: 40000000
