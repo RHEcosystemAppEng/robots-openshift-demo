@@ -15,11 +15,18 @@ ROBOT_MODEL=${ROBOT_MODEL:-turtlebot3_waffle}
 
 echo "=== Robot Demo: Nav2 pod starting (${ROBOT_NAME}) ==="
 
-# ── 0. Early Zenoh route holders ──────────────────────────────────────────────
-# The Zenoh bridge scans DDS shortly after startup. We need DDS subscribers for
-# /robot_N/scan and /robot_N/odom to exist immediately so the bridge establishes
-# Zenoh routes from Gazebo before topic_relay.py starts (which runs ~3s later).
-# Without these, the bridge misses the subscriptions and never routes sensor data.
+# ── 0. Start topic_relay.py immediately ──────────────────────────────────────
+# topic_relay.py must start FIRST so its DDS publishers (/robot_N/tf, /robot_N/map,
+# /robot_N/cmd_vel) AND subscribers (/robot_N/scan, /robot_N/odom) all exist when
+# the Zenoh bridge sidecar performs its initial DDS scan (~1-2s after pod start).
+# If topic_relay.py starts later, the bridge misses its publishers and never routes
+# outbound TF/map to the viz pod; it also misses subscribers and never routes
+# inbound scan/odom from Gazebo.
+ROBOT_NAME=${ROBOT_NAME} python3 /usr/local/lib/topic_relay.py &
+RELAY_PID=$!
+sleep 2  # Give topic_relay.py time to create its DDS entities
+
+# Additional early echo subscribers for robustness (backup route holders)
 ros2 topic echo "/${ROBOT_NAME}/scan" > /dev/null 2>&1 &
 ros2 topic echo "/${ROBOT_NAME}/odom" > /dev/null 2>&1 &
 sleep 1
@@ -29,14 +36,7 @@ echo "[TF] Starting odom→base_footprint TF broadcaster (${ROBOT_NAME})"
 ROBOT_NAME=${ROBOT_NAME} python3 /usr/local/lib/odom_to_tf.py &
 sleep 2
 
-# ── 2. Topic relay: /robot_N/* ↔ bare topics ────────────────────────────────
-# zenoh-bridge-ros2dds 1.9.0 does not support ros_namespace config.
-# This relay bridges between Zenoh-routed /robot_N/* topics and the bare
-# topic names that SLAM, Nav2, and patrol expect (e.g. /scan, /odom, /tf).
-echo "[Relay] Starting topic_relay for ${ROBOT_NAME}"
-ROBOT_NAME=${ROBOT_NAME} python3 /usr/local/lib/topic_relay.py &
-RELAY_PID=$!
-sleep 2
+# ── 2. topic_relay already started at step 0 (see above) ────────────────────
 
 # ── 3. Wait for real /scan data from Gazebo via Zenoh ────────────────────────
 # The relay subscribes to /${ROBOT_NAME}/scan from Zenoh and republishes as /scan.
