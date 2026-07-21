@@ -30,14 +30,18 @@ data:
       }
     }
 
-  # Nav2 pods: NO allow filter so ALL topic subscriptions (from topic_relay.py
-  # and early route-holder echo processes) are detected and Zenoh routes established
-  # regardless of startup timing.
+  # Nav2 pod (robot_1): allow only namespaced /robot_N/* topics so bare /map,
+  # /tf etc. from other robots don't cross-pollinate local SLAM/Nav2.
   zenoh-nav2.json5: |
     {
       mode: "client",
       connect: { endpoints: ["tcp/zenoh-router:7447"] },
-      scouting: { multicast: { enabled: false } }
+      scouting: { multicast: { enabled: false } },
+      plugins: {
+        ros2dds: {
+          allow: "^((robot_1|robot_2)/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|robot_description|goal_pose)|clock|ros_discovery_info|rosout)$"
+        }
+      }
     }
 
   zenoh-gazebo-robot-1.json5: |
@@ -64,19 +68,28 @@ data:
       }
     }
 
-  # Nav2 per-robot configs: no allow filter (same reason as zenoh-nav2.json5)
   zenoh-nav2-robot-1.json5: |
     {
       mode: "client",
       connect: { endpoints: ["tcp/zenoh-router:7447"] },
-      scouting: { multicast: { enabled: false } }
+      scouting: { multicast: { enabled: false } },
+      plugins: {
+        ros2dds: {
+          allow: "^((robot_1|robot_2)/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|robot_description|goal_pose)|clock|ros_discovery_info|rosout)$"
+        }
+      }
     }
 
   zenoh-nav2-robot-2.json5: |
     {
       mode: "client",
       connect: { endpoints: ["tcp/zenoh-router:7447"] },
-      scouting: { multicast: { enabled: false } }
+      scouting: { multicast: { enabled: false } },
+      plugins: {
+        ros2dds: {
+          allow: "^((robot_1|robot_2)/(scan|odom|imu|joint_states|cmd_vel|tf|tf_static|map|plan|robot_description|goal_pose)|clock|ros_discovery_info|rosout)$"
+        }
+      }
     }
 
   # Viz pod: no allow filter — routes all /robot_N/* subscriptions from
