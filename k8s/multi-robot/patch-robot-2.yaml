@@ -1,4 +1,6 @@
-# Scale zenoh-router to 2 replicas for two-robot fleet resilience.
+# Keep zenoh-router at 1 replica — multiple replicas cause routing isolation
+# (clients on different routers can't share subscription interest).
+# Single router ensures all Zenoh bridges share one routing table.
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -6,4 +8,4 @@ metadata:
   name: zenoh-router
   namespace: robot-demo
 spec:
-  replicas: 2
+  replicas: 1
