@@ -22,10 +22,10 @@ Visualization Manager:
       Reference Frame: <Fixed Frame>
       Value: true
 
-    # ── Robot 1 map (blue tones) ──────────────────────────────────────────────
+    # ── Robot 1 map — disabled to prevent llvmpipe crash on large SLAM textures
     - Class: rviz_default_plugins/Map
       Name: Map (robot_1)
-      Enabled: true
+      Enabled: false
       Topic:
         Depth: 5
         Durability Policy: Transient Local
@@ -36,12 +36,12 @@ Visualization Manager:
       Color Scheme: map
       Draw Behind: false
       Use Timestamp: false
-      Value: true
+      Value: false
 
-    # ── Robot 2 map (overlaid, slightly transparent) ──────────────────────────
+    # ── Robot 2 map — disabled to prevent llvmpipe crash on large SLAM textures
     - Class: rviz_default_plugins/Map
       Name: Map (robot_2)
-      Enabled: true
+      Enabled: false
       Topic:
         Depth: 5
         Durability Policy: Transient Local
@@ -52,7 +52,7 @@ Visualization Manager:
       Color Scheme: map
       Draw Behind: false
       Use Timestamp: false
-      Value: true
+      Value: false
 
     - Class: rviz_default_plugins/TF
       Name: TF
